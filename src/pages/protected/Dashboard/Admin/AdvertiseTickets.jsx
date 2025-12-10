@@ -1,0 +1,1 @@
+//Table toggle (max 6)

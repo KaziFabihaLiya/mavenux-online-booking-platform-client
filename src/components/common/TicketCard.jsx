@@ -1,0 +1,1 @@
+// For Home/All Tickets (image, title, price, etc.)
