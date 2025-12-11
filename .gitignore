@@ -23,4 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
+# dotenv environment variables file
 .env
+
+# Dependency directories
+node_modules/
