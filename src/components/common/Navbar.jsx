@@ -10,6 +10,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
+import { Link } from "react-router";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -148,18 +149,12 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <a
-                  href="/login"
-                  className="px-4 py-2 text-stone-700 hover:text-amber-600 font-medium transition-colors"
-                >
-                  Login
-                </a>
-                <a
-                  href="/register"
-                  className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
-                >
-                  Register
-                </a>
+                <Link to="/login" className="px-4 py-2 text-stone-700 hover:text-amber-600 font-medium transition-colors">
+                    Login
+                </Link>
+                <Link to="/signup" className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+                    Register
+                </Link>
               </div>
             )}
           </div>
@@ -234,18 +229,15 @@ const Navbar = () => {
                 </>
               ) : (
                 <div className="px-4 py-2 flex flex-col gap-2">
-                  <a
-                    href="/login"
+                  <Link
+                    to="/login"
                     className="w-full px-4 py-2 text-center border-2 border-amber-500 text-amber-600 rounded-lg font-medium hover:bg-amber-50 transition-colors"
                   >
                     Login
-                  </a>
-                  <a
-                    href="/register"
-                    className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
-                  >
-                    Register
-                  </a>
+                  </Link>
+                    <Link to="/signup" className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+                      Register
+                  </Link>
                 </div>
               )}
             </div>

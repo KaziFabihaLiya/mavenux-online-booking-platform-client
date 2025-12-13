@@ -1,15 +1,20 @@
 import { useState } from "react";
 import {
+    ChevronRight,
   CreditCard,
   DollarSign,
   FileText,
+  LogOut,
+  Menu,
   Package,
   PlusCircle,
   Settings,
   Ticket,
   User,
   Users,
+  X,
 } from "lucide-react";
+import useAuth from "../../../hooks/useAuth";
 
  const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -17,6 +22,7 @@ import {
 
   // Demo user - change to 'vendor' or 'admin' to see different sidebars
   const [userRole, setUserRole] = useState("user");
+  const { user } = useAuth();
 
   const userMenuItems = [
     { id: "profile", label: "User Profile", icon: User },
