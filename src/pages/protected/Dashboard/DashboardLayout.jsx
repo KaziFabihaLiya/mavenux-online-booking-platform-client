@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 
-const index = () => {
+ const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeView, setActiveView] = useState("profile");
 
@@ -359,4 +359,4 @@ const index = () => {
   );
 };
 
-export default index;
+export default DashboardLayout;

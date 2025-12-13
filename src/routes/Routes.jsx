@@ -9,9 +9,11 @@ import Register from "../pages/public/Register";
 import PrivateRoutes from "./PrivateRoutes";
 import MyBookedTickets from "../pages/protected/Dashboard/User/MyBookedTickets";
 import Profile from "../pages/protected/Dashboard/User/Profile";
-import ManageUsers from "../pages/protected/Dashboard/Admin/ManageUsers";
 import ManageTickets from "../pages/protected/Dashboard/Admin/ManageTickets";
 import AllTickets from "../pages/public/AllTickets";
+import DashboardLayout from "../pages/protected/Dashboard/DashboardLayout";
+import LoginForm from "../components/forms/LoginForm";
+import RegisterForm from "../components/forms/RegisterForm";
 
 
 export const router = createBrowserRouter([
@@ -34,8 +36,8 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: "/login", element: <Login /> },
-  { path: "/signup", element: <Register /> },
+  { path: "/login", element: <LoginForm /> },
+  { path: "/signup", element: <RegisterForm /> },
   {
     path: "/dashboard",
     element: (
@@ -48,17 +50,15 @@ export const router = createBrowserRouter([
         index: true,
         element: (
           <PrivateRoutes>
-            <Statistics />
+            
           </PrivateRoutes>
         ),
       },
       {
-        path: "add-plant",
+        path: "add-ticket",
         element: (
           <PrivateRoutes>
-            <SellerRoute>
-              <AddPlant />
-            </SellerRoute>
+            
           </PrivateRoutes>
         ),
       },
@@ -66,9 +66,7 @@ export const router = createBrowserRouter([
         path: "my-inventory",
         element: (
           <PrivateRoutes>
-            <SellerRoute>
-              <MyInventory />
-            </SellerRoute>
+            
           </PrivateRoutes>
         ),
       },
@@ -76,9 +74,7 @@ export const router = createBrowserRouter([
         path: "manage-users",
         element: (
           <PrivateRoutes>
-            <AdminRoute>
-              <ManageUsers />
-            </AdminRoute>
+
           </PrivateRoutes>
         ),
       },
@@ -86,9 +82,7 @@ export const router = createBrowserRouter([
         path: "seller-requests",
         element: (
           <PrivateRoutes>
-            <AdminRoute>
-              <SellerRequests />
-            </AdminRoute>
+           
           </PrivateRoutes>
         ),
       },
@@ -112,9 +106,9 @@ export const router = createBrowserRouter([
         path: "manage-tickets",
         element: (
           <PrivateRoutes>
-            <SellerRoute>
+
               <ManageTickets />
-            </SellerRoute>
+
           </PrivateRoutes>
         ),
       },
