@@ -1,6 +1,8 @@
+// DashboardLayout.jsx - UPDATED VERSION WITH REAL USER DATA
+
 import { useState } from "react";
 import {
-    ChevronRight,
+  ChevronRight,
   CreditCard,
   DollarSign,
   FileText,
@@ -16,13 +18,20 @@ import {
 } from "lucide-react";
 import useAuth from "../../../hooks/useAuth";
 
- const DashboardLayout = () => {
+import Profile from "./User/Profile";
+import MyBookedTickets from "./User/MyBookedTickets";
+import TransactionHistory from "./User/TransactionHistory";
+
+const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [activeView, setActiveView] = useState("profile");
 
-  // Demo user - change to 'vendor' or 'admin' to see different sidebars
-  const [userRole, setUserRole] = useState("user");
-  const { user } = useAuth();
+  // GET REAL USER FROM AUTH CONTEXT
+  const { user, logOut } = useAuth();
+
+  // Determine user role (you might store this in Firestore or your backend)
+  // For now, defaulting to 'user' - you can fetch this from your backend
+  const userRole = user?.role || "user"; // Get from your user document in Firestore/MongoDB
 
   const userMenuItems = [
     { id: "profile", label: "User Profile", icon: User },
@@ -58,196 +67,32 @@ import useAuth from "../../../hooks/useAuth";
 
   const menuItems = getMenuItems();
 
-  // Demo content components
-  const UserProfile = () => (
-    <div className="bg-white rounded-xl shadow-md p-8">
-      <div className="flex items-center gap-6 mb-8">
-        <div className="w-24 h-24 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-          RH
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-stone-800 mb-1">
-            Rakib Hassan
-          </h2>
-          <p className="text-stone-600">user@example.com</p>
-          <span className="inline-block mt-2 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">
-            {userRole.toUpperCase()}
-          </span>
-        </div>
-      </div>
+  // HANDLE LOGOUT
+  const handleLogout = async () => {
+    try {
+      await logOut();
+      // Navigate to home (use useNavigate from react-router-dom)
+      // navigate('/');
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="border border-stone-200 rounded-lg p-4">
-          <p className="text-stone-600 text-sm mb-1">Full Name</p>
-          <p className="font-semibold text-stone-800">Rakib Hassan</p>
-        </div>
-        <div className="border border-stone-200 rounded-lg p-4">
-          <p className="text-stone-600 text-sm mb-1">Email</p>
-          <p className="font-semibold text-stone-800">user@example.com</p>
-        </div>
-        <div className="border border-stone-200 rounded-lg p-4">
-          <p className="text-stone-600 text-sm mb-1">Role</p>
-          <p className="font-semibold text-stone-800 capitalize">{userRole}</p>
-        </div>
-        <div className="border border-stone-200 rounded-lg p-4">
-          <p className="text-stone-600 text-sm mb-1">Member Since</p>
-          <p className="font-semibold text-stone-800">January 2025</p>
-        </div>
-      </div>
-    </div>
-  );
-
-  const MyBookedTickets = () => (
-    <div>
-      <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <h2 className="text-2xl font-bold text-stone-800 mb-2">
-          My Booked Tickets
-        </h2>
-        <p className="text-stone-600">View and manage your ticket bookings</p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[
-          {
-            title: "Dhaka to Chittagong - AC Bus",
-            qty: 2,
-            price: 2400,
-            status: "accepted",
-            from: "Dhaka",
-            to: "Chittagong",
-            date: "2025-12-20",
-            time: "22:00",
-          },
-          {
-            title: "Dhaka to Barisal - Luxury Launch",
-            qty: 3,
-            price: 4500,
-            status: "pending",
-            from: "Dhaka",
-            to: "Barisal",
-            date: "2025-12-23",
-            time: "20:00",
-          },
-          {
-            title: "Dhaka to Cox's Bazar - Sleeper",
-            qty: 2,
-            price: 3600,
-            status: "rejected",
-            from: "Dhaka",
-            to: "Cox's Bazar",
-            date: "2025-12-22",
-            time: "23:30",
-          },
-        ].map((booking, idx) => (
-          <div
-            key={idx}
-            className="bg-white rounded-xl shadow-md overflow-hidden border border-stone-200"
-          >
-            <div className="h-32 bg-gradient-to-br from-amber-400 to-orange-500"></div>
-            <div className="p-5">
-              <h3 className="font-bold text-stone-800 mb-3 line-clamp-2">
-                {booking.title}
-              </h3>
-
-              <div className="space-y-2 mb-4">
-                <p className="text-sm text-stone-600">
-                  <span className="font-medium">Route:</span> {booking.from} →{" "}
-                  {booking.to}
-                </p>
-                <p className="text-sm text-stone-600">
-                  <span className="font-medium">Date:</span> {booking.date} at{" "}
-                  {booking.time}
-                </p>
-                <p className="text-sm text-stone-600">
-                  <span className="font-medium">Quantity:</span> {booking.qty}{" "}
-                  tickets
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-stone-200">
-                <div>
-                  <p className="text-xs text-stone-500">Total Price</p>
-                  <p className="text-xl font-bold text-amber-600">
-                    ৳{booking.price.toLocaleString()}
-                  </p>
-                </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    booking.status === "accepted"
-                      ? "bg-green-100 text-green-700"
-                      : booking.status === "pending"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {booking.status.toUpperCase()}
-                </span>
-              </div>
-
-              {booking.status === "accepted" && (
-                <button className="w-full mt-4 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg font-medium transition-colors">
-                  Pay Now
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const TransactionHistory = () => (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
-      <div className="p-6 border-b border-stone-200">
-        <h2 className="text-2xl font-bold text-stone-800 mb-2">
-          Transaction History
-        </h2>
-        <p className="text-stone-600">All your payment transactions</p>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-stone-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-stone-600 uppercase">
-                Transaction ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-stone-600 uppercase">
-                Ticket Title
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-stone-600 uppercase">
-                Amount
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-stone-600 uppercase">
-                Payment Date
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-200">
-            <tr className="hover:bg-stone-50">
-              <td className="px-6 py-4 text-sm font-mono text-stone-600">
-                txn_1234567890
-              </td>
-              <td className="px-6 py-4 text-sm text-stone-800">
-                Dhaka to Chittagong - Train
-              </td>
-              <td className="px-6 py-4 text-sm font-semibold text-amber-600">
-                ৳800
-              </td>
-              <td className="px-6 py-4 text-sm text-stone-600">
-                Dec 11, 2025 4:30 PM
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  // GET USER INITIALS FOR AVATAR
+  const getInitials = () => {
+    if (!user?.displayName) return "U";
+    return user.displayName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const renderContent = () => {
     switch (activeView) {
       case "profile":
-        return <UserProfile />;
+        return <Profile />;
       case "booked":
         return <MyBookedTickets />;
       case "transactions":
@@ -255,7 +100,6 @@ import useAuth from "../../../hooks/useAuth";
       default:
         return (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
-            <LayoutDashboard className="w-16 h-16 text-stone-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-stone-600 mb-2">
               {menuItems.find((item) => item.id === activeView)?.label ||
                 "Dashboard"}
@@ -265,6 +109,15 @@ import useAuth from "../../../hooks/useAuth";
         );
     }
   };
+
+  // SHOW LOADING STATE WHILE AUTH IS LOADING
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-stone-50">
@@ -282,26 +135,6 @@ import useAuth from "../../../hooks/useAuth";
           >
             {isSidebarOpen ? "Dashboard" : "TB"}
           </h1>
-        </div>
-
-        {/* Role Switcher (Demo Only) */}
-        <div
-          className={`p-4 border-b border-stone-200 ${
-            !isSidebarOpen && "hidden"
-          }`}
-        >
-          <select
-            value={userRole}
-            onChange={(e) => {
-              setUserRole(e.target.value);
-              setActiveView("profile");
-            }}
-            className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm"
-          >
-            <option value="user">User Role</option>
-            <option value="vendor">Vendor Role</option>
-            <option value="admin">Admin Role</option>
-          </select>
         </div>
 
         <nav className="p-4">
@@ -325,7 +158,10 @@ import useAuth from "../../../hooks/useAuth";
             </button>
           ))}
 
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 mt-4 transition-all">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 mt-4 transition-all"
+          >
             <LogOut className="w-5 h-5 flex-shrink-0" />
             {isSidebarOpen && <span className="font-medium">Logout</span>}
           </button>
@@ -349,12 +185,24 @@ import useAuth from "../../../hooks/useAuth";
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
-              <p className="font-semibold text-stone-800">Rakib Hassan</p>
+              <p className="font-semibold text-stone-800">
+                {user?.displayName || "User"}
+              </p>
               <p className="text-xs text-stone-500 capitalize">{userRole}</p>
             </div>
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-semibold">
-              RH
-            </div>
+
+            {/* USER AVATAR - DYNAMIC */}
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt={user.displayName}
+                className="w-10 h-10 rounded-full border-2 border-amber-500 object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-semibold">
+                {getInitials()}
+              </div>
+            )}
           </div>
         </header>
 
@@ -366,3 +214,86 @@ import useAuth from "../../../hooks/useAuth";
 };
 
 export default DashboardLayout;
+
+/*
+============================================
+HOW TO USE THIS IN YOUR PROJECT
+============================================
+
+1. REPLACE your existing DashboardLayout.jsx with this code
+
+2. CREATE the component files:
+   - src/components/dashboard/UserProfile.jsx (use the artifact I created)
+   - src/components/dashboard/MyBookedTickets.jsx (use the artifact I created)
+   - src/components/dashboard/TransactionHistory.jsx (create or use existing)
+
+3. IMPORT the components at the top:
+   import UserProfile from './UserProfile';
+   import MyBookedTickets from './MyBookedTickets';
+
+4. YOUR useAuth HOOK should return:
+   {
+     user: Firebase user object,
+     loading: boolean,
+     logOut: function
+   }
+
+5. IF YOU STORE USER ROLE IN FIRESTORE/MONGODB:
+   
+   // Fetch user role from your backend
+   useEffect(() => {
+     const fetchUserRole = async () => {
+       const response = await fetch(`/api/users/${user.uid}`);
+       const data = await response.json();
+       setUserRole(data.role); // 'user', 'vendor', or 'admin'
+     };
+     
+     if (user) fetchUserRole();
+   }, [user]);
+
+6. REMOVE the demo role switcher dropdown (it was just for testing)
+
+============================================
+KEY CHANGES FROM YOUR ORIGINAL CODE
+============================================
+
+✅ Uses real user.displayName instead of hardcoded "Rakib Hassan"
+✅ Uses real user.email instead of hardcoded "user@example.com"
+✅ Shows user.photoURL if available, otherwise shows initials
+✅ Calls actual logOut function from AuthContext
+✅ Removed demo role switcher
+✅ Added loading state while auth is initializing
+✅ Removed hardcoded UserProfile and MyBookedTickets content
+✅ Now imports real components that fetch data from API
+
+============================================
+FILE STRUCTURE
+============================================
+
+src/
+├── components/
+│   └── dashboard/
+│       ├── DashboardLayout.jsx (this file)
+│       ├── UserProfile.jsx (artifact: user_profile_dynamic)
+│       ├── MyBookedTickets.jsx (artifact: my_booked_tickets_dynamic)
+│       └── TransactionHistory.jsx (create this)
+├── hooks/
+│   └── useAuth.js (your existing hook)
+└── contexts/
+    ├── AuthContext.jsx (your existing context)
+    └── AuthProvider.jsx (your existing provider)
+
+============================================
+TESTING CHECKLIST
+============================================
+
+□ Login and verify user name shows in top bar
+□ Verify user avatar/initials display correctly
+□ Test sidebar navigation between sections
+□ Verify logout button works
+□ Check mobile responsiveness
+□ Test User Profile page shows real data
+□ Test My Booked Tickets page loads bookings
+□ Verify countdown timers work
+□ Test "Pay Now" button functionality
+*/
