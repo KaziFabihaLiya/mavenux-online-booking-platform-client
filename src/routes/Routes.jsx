@@ -27,7 +27,7 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/",
+        path: "/all-tickets",
         element: <AllTickets />,
       },
       {
@@ -48,43 +48,23 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: (
-          <PrivateRoutes>
-            
-          </PrivateRoutes>
-        ),
+        element: <PrivateRoutes></PrivateRoutes>,
       },
       {
         path: "add-ticket",
-        element: (
-          <PrivateRoutes>
-            
-          </PrivateRoutes>
-        ),
+        element: <PrivateRoutes></PrivateRoutes>,
       },
       {
         path: "my-inventory",
-        element: (
-          <PrivateRoutes>
-            
-          </PrivateRoutes>
-        ),
+        element: <PrivateRoutes></PrivateRoutes>,
       },
       {
         path: "manage-users",
-        element: (
-          <PrivateRoutes>
-
-          </PrivateRoutes>
-        ),
+        element: <PrivateRoutes></PrivateRoutes>,
       },
       {
         path: "seller-requests",
-        element: (
-          <PrivateRoutes>
-           
-          </PrivateRoutes>
-        ),
+        element: <PrivateRoutes></PrivateRoutes>,
       },
       {
         path: "profile",
@@ -106,9 +86,7 @@ export const router = createBrowserRouter([
         path: "manage-tickets",
         element: (
           <PrivateRoutes>
-
-              <ManageTickets />
-
+            <ManageTickets />
           </PrivateRoutes>
         ),
       },

@@ -9,8 +9,6 @@ import useAuth from "../../../../hooks/useAuth";
 // Includes edit profile functionality (optional to implement)
 
 export default function Profile() {
-  // Get user from your AuthContext
-  // const { user } = useContext(AuthContext);
 
   // Mock user data - Replace with actual Firebase user
   const {user, loading} = useAuth();

@@ -7,6 +7,7 @@ import {
   Search,
 } from "lucide-react";
 import moment from "moment";
+import useAuth from "../../../../hooks/useAuth";
 
 // EXPLANATION:
 // This component fetches and displays all Stripe payment transactions
@@ -20,8 +21,8 @@ export default function TransactionHistory() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Get user from AuthContext
-  // const { user } = useContext(AuthContext);
-  const userId = "user001"; // Replace with user.uid from Firebase
+  const { user } = useAuth();
+  const userId = user.uid; 
 
   useEffect(() => {
     fetchTransactions();
@@ -32,9 +33,9 @@ export default function TransactionHistory() {
       setLoading(true);
 
       // FETCH FROM YOUR BACKEND API
-      // const response = await fetch(`/api/transactions/user/${userId}`);
-      // const data = await response.json();
-      // setTransactions(data.data);
+      const response = await fetch(`/api/transactions/user/${userId}`);
+      const data = await response.json();
+      setTransactions(data.data);
 
       // Mock data for demonstration
       const mockTransactions = [
