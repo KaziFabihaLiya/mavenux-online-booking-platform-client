@@ -1,4 +1,3 @@
-//Grid with update/delete
 import { useState, useEffect } from "react";
 import {
   Edit,
@@ -10,13 +9,9 @@ import {
   Calendar,
   DollarSign,
   Package,
-  Loader2,
+  X,
+  Sparkles,
 } from "lucide-react";
-
-// EXPLANATION:
-// Vendor can view all their added tickets
-// Update/Delete buttons (disabled if rejected)
-// Shows verification status: pending, approved, rejected
 
 export default function MyAddedTickets() {
   const [tickets, setTickets] = useState([]);
@@ -25,6 +20,9 @@ export default function MyAddedTickets() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [updating, setUpdating] = useState(false);
 
+  // Replace with actual vendorId from auth
+  const vendorId = "USER_ID_FROM_AUTH";
+
   useEffect(() => {
     fetchMyTickets();
   }, []);
@@ -32,7 +30,9 @@ export default function MyAddedTickets() {
   const fetchMyTickets = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/vendor/my-tickets");
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/vendor/${vendorId}`
+      );
       const data = await response.json();
       setTickets(data.data);
     } catch (error) {
@@ -50,11 +50,14 @@ export default function MyAddedTickets() {
   const handleUpdateSubmit = async () => {
     try {
       setUpdating(true);
-      const response = await fetch(`/api/vendor/tickets/${selectedTicket._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(selectedTicket),
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${selectedTicket._id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(selectedTicket),
+        }
+      );
 
       if (response.ok) {
         setShowUpdateModal(false);
@@ -68,12 +71,13 @@ export default function MyAddedTickets() {
   };
 
   const handleDelete = async (ticketId) => {
-    if (!confirm("Are you sure you want to delete this ticket?")) return;
+    if (!confirm("Delete this ticket permanently?")) return;
 
     try {
-      const response = await fetch(`/api/vendor/tickets/${ticketId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `http://localhost:5000/api/tickets/${ticketId}`,
+        { method: "DELETE" }
+      );
 
       if (response.ok) {
         fetchMyTickets();
@@ -85,117 +89,181 @@ export default function MyAddedTickets() {
 
   const getStatusBadge = (status) => {
     const badges = {
-      pending: { bg: "bg-yellow-100", text: "text-yellow-700", icon: Clock },
-      approved: { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle },
-      rejected: { bg: "bg-red-100", text: "text-red-700", icon: XCircle },
+      pending: {
+        bg: "bg-gradient-to-r from-yellow-400 to-orange-400",
+        icon: Clock,
+      },
+      approved: {
+        bg: "bg-gradient-to-r from-green-400 to-emerald-400",
+        icon: CheckCircle,
+      },
+      rejected: {
+        bg: "bg-gradient-to-r from-red-400 to-pink-400",
+        icon: XCircle,
+      },
     };
     const badge = badges[status] || badges.pending;
     const Icon = badge.icon;
     return (
-      <span
-        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}
+      <div
+        className={`inline-flex items-center gap-1.5 rounded-full ${badge.bg} px-3 py-1 text-white shadow-lg`}
       >
-        <Icon className="w-3 h-3" />
-        {status.toUpperCase()}
-      </span>
+        <Icon className="h-3.5 w-3.5" />
+        <span className="text-xs font-bold uppercase">{status}</span>
+      </div>
     );
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
-          <p className="text-stone-600">Loading tickets...</p>
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-stone-200 border-t-amber-500"></div>
+          <p className="text-stone-600 font-semibold">Loading tickets...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-stone-800 mb-2">My Added Tickets</h2>
-        <p className="text-stone-600">Manage your ticket listings</p>
+    <div className="px-4">
+      {/* Header */}
+      <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-purple-600 via-pink-600 to-red-600 p-8 shadow-2xl">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white bg-opacity-20 backdrop-blur-sm">
+            <Package className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <h2 className="mb-1 text-3xl font-black text-white">My Tickets</h2>
+            <p className="text-purple-100">Manage your ticket listings</p>
+          </div>
+        </div>
       </div>
 
+      {/* Stats */}
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 text-white shadow-xl">
+          <p className="mb-2 text-sm font-medium opacity-90">Total Tickets</p>
+          <p className="text-4xl font-black">{tickets.length}</p>
+        </div>
+        <div className="rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 p-6 text-white shadow-xl">
+          <p className="mb-2 text-sm font-medium opacity-90">Pending</p>
+          <p className="text-4xl font-black">
+            {tickets.filter((t) => t.status === "pending").length}
+          </p>
+        </div>
+        <div className="rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 p-6 text-white shadow-xl">
+          <p className="mb-2 text-sm font-medium opacity-90">Approved</p>
+          <p className="text-4xl font-black">
+            {tickets.filter((t) => t.status === "approved").length}
+          </p>
+        </div>
+        <div className="rounded-xl bg-gradient-to-br from-red-500 to-pink-500 p-6 text-white shadow-xl">
+          <p className="mb-2 text-sm font-medium opacity-90">Rejected</p>
+          <p className="text-4xl font-black">
+            {tickets.filter((t) => t.status === "rejected").length}
+          </p>
+        </div>
+      </div>
+
+      {/* Tickets Grid */}
       {tickets.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-          <Package className="w-16 h-16 text-stone-300 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-stone-600 mb-2">
-            No tickets added yet
+        <div className="rounded-2xl bg-white p-16 text-center shadow-xl">
+          <Package className="mx-auto mb-4 h-20 w-20 text-stone-300" />
+          <h3 className="mb-2 text-2xl font-bold text-stone-600">
+            No tickets yet
           </h3>
           <p className="text-stone-500">Start by adding your first ticket</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {tickets.map((ticket) => (
             <div
               key={ticket._id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+              className="group relative overflow-hidden rounded-2xl bg-white shadow-lg transition-all hover:shadow-2xl hover:scale-[1.02]"
             >
-              <div className="relative h-48">
+              {/* Image */}
+              <div className="relative h-52 overflow-hidden">
                 <img
                   src={ticket.image}
                   alt={ticket.title}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full object-cover transition-transform group-hover:scale-110"
                 />
-                <div className="absolute top-2 right-2">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+
+                {/* Status Badge */}
+                <div className="absolute right-3 top-3">
                   {getStatusBadge(ticket.status)}
+                </div>
+
+                {/* Transport Type */}
+                <div className="absolute bottom-3 left-3">
+                  <span className="rounded-lg bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-bold text-stone-700">
+                    {ticket.transportType}
+                  </span>
                 </div>
               </div>
 
+              {/* Content */}
               <div className="p-5 space-y-3">
-                <h3 className="font-bold text-lg text-stone-800 line-clamp-1">
+                <h3 className="text-lg font-bold text-stone-800 line-clamp-1">
                   {ticket.title}
                 </h3>
 
-                <div className="flex items-center gap-2 text-sm text-stone-600">
-                  <MapPin className="w-4 h-4 text-amber-600" />
-                  <span>
-                    {ticket.from} → {ticket.to}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-stone-600">
+                    <MapPin className="h-4 w-4 text-amber-600" />
+                    <span className="font-medium">
+                      {ticket.from} → {ticket.to}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-stone-600">
+                    <Calendar className="h-4 w-4 text-blue-600" />
+                    <span>
+                      {new Date(ticket.departureDate).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-stone-600">
-                  <Calendar className="w-4 h-4 text-blue-600" />
-                  <span>{new Date(ticket.departureDate).toLocaleDateString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-stone-200">
+                <div className="flex items-center justify-between border-t border-stone-200 pt-3">
                   <div className="flex items-center gap-1">
-                    <DollarSign className="w-4 h-4 text-green-600" />
-                    <span className="text-lg font-bold text-green-600">
+                    <DollarSign className="h-5 w-5 text-green-600" />
+                    <span className="text-2xl font-black text-green-600">
                       ৳{ticket.price}
                     </span>
                   </div>
-                  <span className="text-sm text-stone-600">
-                    {ticket.ticketQuantity} seats
-                  </span>
+                  <div className="flex items-center gap-1 text-sm text-stone-600">
+                    <Package className="h-4 w-4" />
+                    <span className="font-semibold">
+                      {ticket.ticketQuantity}
+                    </span>
+                  </div>
                 </div>
 
+                {/* Actions */}
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={() => handleUpdate(ticket)}
                     disabled={ticket.status === "rejected"}
-                    className="flex-1 flex items-center justify-center gap-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="h-4 w-4" />
                     Update
                   </button>
                   <button
                     onClick={() => handleDelete(ticket._id)}
                     disabled={ticket.status === "rejected"}
-                    className="flex-1 flex items-center justify-center gap-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="h-4 w-4" />
                     Delete
                   </button>
                 </div>
 
                 {ticket.status === "rejected" && (
-                  <p className="text-xs text-red-600 text-center">
-                    Update/Delete disabled for rejected tickets
+                  <p className="text-center text-xs font-semibold text-red-600 pt-2">
+                    🚫 Actions disabled for rejected tickets
                   </p>
                 )}
               </div>
@@ -204,44 +272,61 @@ export default function MyAddedTickets() {
         </div>
       )}
 
+      {/* Update Modal */}
       {showUpdateModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-stone-200">
-              <h3 className="text-xl font-bold text-stone-800">Update Ticket</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-stone-200 p-6">
+              <h3 className="text-2xl font-black text-stone-800">
+                Update Ticket
+              </h3>
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className="rounded-lg p-2 transition-colors hover:bg-stone-100"
+              >
+                <X className="h-6 w-6 text-stone-600" />
+              </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            {/* Modal Content */}
+            <div className="space-y-4 p-6">
               <div>
-                <label className="block text-sm font-semibold text-stone-700 mb-2">
+                <label className="mb-2 block text-sm font-bold text-stone-700">
                   Ticket Title
                 </label>
                 <input
                   type="text"
                   value={selectedTicket.title}
                   onChange={(e) =>
-                    setSelectedTicket({ ...selectedTicket, title: e.target.value })
+                    setSelectedTicket({
+                      ...selectedTicket,
+                      title: e.target.value,
+                    })
                   }
-                  className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                  className="w-full rounded-xl border-2 border-stone-200 px-4 py-3 focus:border-amber-500 focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-2">
+                  <label className="mb-2 block text-sm font-bold text-stone-700">
                     Price
                   </label>
                   <input
                     type="number"
                     value={selectedTicket.price}
                     onChange={(e) =>
-                      setSelectedTicket({ ...selectedTicket, price: e.target.value })
+                      setSelectedTicket({
+                        ...selectedTicket,
+                        price: e.target.value,
+                      })
                     }
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-3 focus:border-green-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-2">
+                  <label className="mb-2 block text-sm font-bold text-stone-700">
                     Ticket Quantity
                   </label>
                   <input
@@ -253,14 +338,14 @@ export default function MyAddedTickets() {
                         ticketQuantity: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-3 focus:border-blue-500 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-2">
+                  <label className="mb-2 block text-sm font-bold text-stone-700">
                     Departure Date
                   </label>
                   <input
@@ -272,11 +357,11 @@ export default function MyAddedTickets() {
                         departureDate: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-3 focus:border-purple-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-stone-700 mb-2">
+                  <label className="mb-2 block text-sm font-bold text-stone-700">
                     Departure Time
                   </label>
                   <input
@@ -288,32 +373,26 @@ export default function MyAddedTickets() {
                         departureTime: e.target.value,
                       })
                     }
-                    className="w-full px-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                    className="w-full rounded-xl border-2 border-stone-200 px-4 py-3 focus:border-orange-500 focus:outline-none"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="p-6 border-t border-stone-200 flex gap-3">
+            {/* Modal Footer */}
+            <div className="flex gap-3 border-t border-stone-200 p-6">
               <button
                 onClick={() => setShowUpdateModal(false)}
-                className="flex-1 px-4 py-2 border border-stone-300 text-stone-700 rounded-lg hover:bg-stone-50 transition-colors"
+                className="flex-1 rounded-xl border-2 border-stone-300 px-4 py-3 font-bold text-stone-700 transition-colors hover:bg-stone-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleUpdateSubmit}
                 disabled={updating}
-                className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 font-bold text-white shadow-lg transition-all hover:shadow-xl disabled:opacity-50"
               >
-                {updating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
+                {updating ? "Updating..." : "Save Changes"}
               </button>
             </div>
           </div>
@@ -324,11 +403,8 @@ export default function MyAddedTickets() {
 }
 
 /*
-INTEGRATION:
-1. Backend endpoints:
-   - GET /api/vendor/my-tickets (fetch vendor's tickets)
-   - PUT /api/vendor/tickets/:id (update ticket)
-   - DELETE /api/vendor/tickets/:id (delete ticket)
-2. Update/Delete disabled if status is "rejected"
-3. Status managed by admin in ManageTickets page
+BACKEND INTEGRATION:
+GET http://localhost:5000/api/tickets/vendor/:vendorId
+PUT http://localhost:5000/api/tickets/:id
+DELETE http://localhost:5000/api/tickets/:id
 */
