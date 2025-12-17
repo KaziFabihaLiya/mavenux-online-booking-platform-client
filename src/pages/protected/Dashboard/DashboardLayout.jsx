@@ -17,14 +17,14 @@ import {
   X,
 } from "lucide-react";
 import useAuth from "../../../hooks/useAuth";
+import useRole from "../../../hooks/useRole";
 
 export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { user, logOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const userRole = user?.role || "user";
+  const [role, isRoleLoading] = useRole();
 
   const userMenuItems = [
     {
@@ -108,7 +108,7 @@ export default function DashboardLayout() {
   ];
 
   const getMenuItems = () => {
-    switch (userRole) {
+    switch (role) {
       case "vendor":
         return vendorMenuItems;
       case "admin":
@@ -218,7 +218,7 @@ export default function DashboardLayout() {
               <p className="font-semibold text-stone-800">
                 {user?.displayName || "User"}
               </p>
-              <p className="text-xs text-stone-500 capitalize">{userRole}</p>
+              <p className="text-xs text-stone-500 capitalize">{role}</p>
             </div>
 
             {user?.photoURL ? (

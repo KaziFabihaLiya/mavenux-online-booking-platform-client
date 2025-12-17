@@ -5,175 +5,94 @@ import {
   Mail,
   Lock,
   User,
-  Image,
   AlertCircle,
-  CheckCircle,
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
+import toast from "react-hot-toast";
+import { imageUpload, saveOrUpdateUser } from "../../utils";
+import { useForm } from "react-hook-form";
 
-// EXPLANATION:
-// This Register component creates new user accounts with Firebase
-// It validates password requirements (uppercase, lowercase, 6+ chars)
-// Shows real-time password strength feedback
-// Handles both email/password and Google authentication
 
 const  RegisterForm = () => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    photoURL: "",
-    password: "",
-  });
+  const {
+    user, 
+    createUser,
+    signInWithGoogle,
+    updateUserProfile,
+    loading,
+  } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+const navigate = useNavigate();
+const location = useLocation();
+const from = location.state || "/";
 
-  // Password validation state
-  const [passwordValidation, setPasswordValidation] = useState({
-    hasUppercase: false,
-    hasLowercase: false,
-    hasMinLength: false,
-  });
+// React Hook Form
+const {
+  register,
+  handleSubmit,
+  formState: { errors },
+} = useForm();
 
-  // In actual app:
-  const { createUser, signInWithGoogle, updateUserProfile } = useAuth();
-  const navigate = useNavigate();
+console.log(errors);
+const onSubmit = async (data) => {
+  const { name, image, email, password } = data;
+  const imageFile = image[0];
+  // const formData = new FormData()
+  // formData.append('image', imageFile)
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  try {
+    // const { data } = await axios.post(
+    //   `https://api.imgbb.com/1/upload?key=${
+    //     import.meta.env.VITE_IMGBB_API_KEY
+    //   }`,
+    //   formData
+    // )
+    const imageURL = await imageUpload(imageFile);
+    // const cloudinaryImageUrl = await imageUploadCloudinary(imageFile)
+    // console.log('Cloudinary Response ----->', cloudinaryImageUrl)
 
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-    setError("");
+    //1. User Registration
+    const result = await createUser(email, password);
 
-    // Real-time password validation
-    if (name === "password") {
-      setPasswordValidation({
-        hasUppercase: /[A-Z]/.test(value),
-        hasLowercase: /[a-z]/.test(value),
-        hasMinLength: value.length >= 6,
-      });
-    }
-  };
+    await saveOrUpdateUser({ name, email, image: imageURL });
 
-  const validatePassword = () => {
-    const { password } = formData;
+    // 2. Generate image url from selected file
 
-    if (!password) {
-      setError("Password is required");
-      return false;
-    }
+    //3. Save username & profile photo
+    await updateUserProfile(name, imageURL);
 
-    if (!/[A-Z]/.test(password)) {
-      setError("Password must contain at least one uppercase letter");
-      return false;
-    }
+    navigate(from, { replace: true });
+    toast.success("Signup Successful");
 
-    if (!/[a-z]/.test(password)) {
-      setError("Password must contain at least one lowercase letter");
-      return false;
-    }
+    console.log(result);
+  } catch (err) {
+    console.log(err);
+    toast.error(err?.message);
+  }
+};
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long");
-      return false;
-    }
+    const handleGoogleSignIn = async () => {
+      try {
+        //User Registration using google
+        const { user } = await signInWithGoogle();
 
-    return true;
-  };
+        await saveOrUpdateUser({
+          name: user?.displayName,
+          email: user?.email,
+          image: user?.photoURL,
+          uid: user?.uid,
+        });
 
-  const handleSubmit = async () => {
-    setError("");
-
-    // Validation
-    if (!formData.name || !formData.email || !formData.password) {
-      setError("Please fill in all required fields");
-      return;
-    }
-
-    if (!validatePassword()) {
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      // FIREBASE REGISTRATION 
-      // 1. Create user
-      await createUser(formData.email, formData.password);
-
-      // 2. Update profile with name and photo
-      await updateUserProfile(formData.name, formData.photoURL);
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      console.log("Registration successful:", formData);
-      alert("✅ Registration successful! Welcome to TicketBari!");
-      navigate("/dashboard");
-
-    } catch (err) {
-      console.error("Registration error:", err);
-
-      // Handle Firebase errors
-      if (err.code === "auth/email-already-in-use") {
-        setError("This email is already registered. Please login instead.");
-      } else if (err.code === "auth/invalid-email") {
-        setError("Invalid email address format.");
-      } else if (err.code === "auth/weak-password") {
-        setError("Password is too weak. Please use a stronger password.");
-      } else {
-        setError("Registration failed. Please try again.");
-        console.error("Full error details:", err);
+        navigate(from, { replace: true });
+        toast.success("Signup Successful");
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        if (user) navigate(from);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignUp = async () => {
-    setError("");
-    setLoading(true);
-
-    try {
-      // GOOGLE SIGN-UP - Replace with actual auth context
-      await signInWithGoogle();
-
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      console.log("Google sign-up successful");
-      alert("✅ Google sign-up successful! Welcome!");
-      navigate("/dashboard");
-
-      // In actual app: navigate('/dashboard');
-    } catch (err) {
-      console.error("Google sign-up error:", err);
-
-      if (err.code === "auth/popup-closed-by-user") {
-        setError("Sign-up cancelled.");
-      } else if (err.code === "auth/account-exists-with-different-credential") {
-        setError("An account with this email already exists.");
-      } else {
-        setError("Google sign-up failed. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      handleSubmit();
-    }
-  };
-
-  const isPasswordValid =
-    passwordValidation.hasUppercase &&
-    passwordValidation.hasLowercase &&
-    passwordValidation.hasMinLength;
+    };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-stone-100 flex items-center justify-center p-4 py-12">
@@ -198,167 +117,159 @@ const  RegisterForm = () => {
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-
-          {/* Registration Fields */}
-          <div className="space-y-4">
-            {/* Name Field */}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="John Doe"
-                  className="w-full pl-11 pr-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="you@example.com"
-                  className="w-full pl-11 pr-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Photo URL Field */}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                Photo URL{" "}
-                <span className="text-stone-400 text-xs">(Optional)</span>
-              </label>
-              <div className="relative">
-                <Image className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input
-                  type="url"
-                  name="photoURL"
-                  value={formData.photoURL}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="https://example.com/photo.jpg"
-                  className="w-full pl-11 pr-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label className="block text-sm font-medium text-stone-700 mb-2">
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Create a strong password"
-                  className="w-full pl-11 pr-11 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate=""
+            action=""
+            className="space-y-6 ng-untouched ng-pristine ng-valid"
+          >
+            {/* Registration Fields */}
+            <div className="space-y-4">
+              {/* Name Field */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                  <input
+                    type="text"
+                    name="name"
+                    {...register("name", {
+                      required: "Name is required",
+                      maxLength: {
+                        value: 20,
+                        message: "Name cannot be too long",
+                      },
+                    })}
+                    placeholder="Enter your name"
+                    className="w-full pl-11 pr-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                  />{" "}
+                  {errors.name && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.name.message}
+                    </p>
                   )}
-                </button>
+                </div>
               </div>
 
-              {/* Password Requirements */}
-              {formData.password && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasUppercase ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-stone-300" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasUppercase
-                          ? "text-green-700"
-                          : "text-stone-600"
-                      }
-                    >
-                      One uppercase letter
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasLowercase ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-stone-300" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasLowercase
-                          ? "text-green-700"
-                          : "text-stone-600"
-                      }
-                    >
-                      One lowercase letter
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    {passwordValidation.hasMinLength ? (
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <div className="w-4 h-4 rounded-full border-2 border-stone-300" />
-                    )}
-                    <span
-                      className={
-                        passwordValidation.hasMinLength
-                          ? "text-green-700"
-                          : "text-stone-600"
-                      }
-                    >
-                      At least 6 characters
-                    </span>
-                  </div>
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                  <input
+                    name="email"
+                    type="email"
+                    id="email"
+                    placeholder="Enter Your Email Here"
+                    {...register("email", {
+                      required: "Email is required",
+                      pattern: {
+                        value:
+                          /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: "Please enter a valid email address.",
+                      },
+                    })}
+                    className="w-full pl-11 pr-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                  />{" "}
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Submit Button */}
-            <button
-              onClick={handleSubmit}
-              disabled={loading || (formData.password && !isPasswordValid)}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            >
-              {loading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Creating Account...
-                </span>
-              ) : (
-                "Sign Up"
-              )}
-            </button>
-          </div>
+              {/* Photo URL Field */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Photo URL{" "}
+                  <span className="text-stone-400 text-xs">(Optional)</span>
+                </label>
+                <div className="relative">
+                  
+                  <input
+                    name="image"
+                    type="file"
+                    id="image"
+                    accept="image/*"
+                    className="block w-full text-sm text-gray-500 px-3
+      file:mr-4 file:py-2 file:px-4
+      file:rounded-md file:border-0
+      file:text-sm file:font-semibold
+      file:bg-orange-50 file:text-orange-700
+      hover:file:bg-orange-100
+      bg-gray-100 border border-dashed border-orange-300 rounded-md cursor-pointer
+      focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400
+      py-2"
+                    {...register("image")}
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    PNG, JPG or JPEG (max 2MB)
+                  </p>
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-2">
+                  Password <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    autoComplete="new-password"
+                    id="password"
+                    placeholder="*******"
+                    {...register("password", {
+                      required: "Password is required",
+                      minLength: {
+                        value: 6,
+                        message: "Password must be at least 6 characters",
+                      },
+                    })}
+                    className="w-full pl-11 pr-11 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
+                  />{" "}
+                  {errors.password && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors.password.message}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating Account...
+                  </span>
+                ) : (
+                  "Sign Up"
+                )}
+              </button>
+            </div>
+          </form>
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-4">
@@ -369,7 +280,7 @@ const  RegisterForm = () => {
 
           {/* Google Sign-Up Button */}
           <button
-            onClick={handleGoogleSignUp}
+            onClick={handleGoogleSignIn}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 py-3 border-2 border-stone-300 rounded-lg font-medium text-stone-700 hover:bg-stone-50 hover:border-stone-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >

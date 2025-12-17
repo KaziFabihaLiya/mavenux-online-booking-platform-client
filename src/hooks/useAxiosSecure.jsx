@@ -5,31 +5,22 @@ import axios from "axios";
 import useAuth from "./useAuth";
 
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000",
+  baseURL: "/api",
   withCredentials: true,
 });
 
 const useAxiosSecure = () => {
-  const { user, logOut, loading } = useAuth();
+  const { user, logOut } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!loading) {
-      // Get JWT token from localStorage
-      const token = localStorage.getItem("token");
-
-      // Add request interceptor
-      const requestInterceptor = axiosInstance.interceptors.request.use(
-        (config) => {
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+    useEffect(() => {
+        // intercept request
+        const requestInterceptor = axiosInstance.interceptors.request.use(
+          async (config) => {
+            config.headers.Authorization = `Bearer ${await user?.getIdToken}`;
+            return config;
           }
-          return config;
-        },
-        (error) => {
-          return Promise.reject(error);
-        }
-      );
+        );
 
       // Add response interceptor
       const responseInterceptor = axiosInstance.interceptors.response.use(
@@ -54,8 +45,7 @@ const useAxiosSecure = () => {
         axiosInstance.interceptors.request.eject(requestInterceptor);
         axiosInstance.interceptors.response.eject(responseInterceptor);
       };
-    }
-  }, [user, loading, logOut, navigate]);
+  }, [user, logOut, navigate]);
 
   return axiosInstance;
 };

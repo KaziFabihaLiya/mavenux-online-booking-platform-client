@@ -3,17 +3,14 @@ import { User, Mail, Calendar, Shield, Edit2, Camera } from "lucide-react";
 import moment from "moment";
 import useAuth from "../../../../hooks/useAuth";
 
-// EXPLANATION:
-// This component fetches and displays real user data from Firebase Auth
-// It shows user avatar, name, email, role, and account creation date
-// Includes edit profile functionality (optional to implement)
-
 export default function Profile() {
 
   // Mock user data - Replace with actual Firebase user
   const {user, loading} = useAuth();
 
+
   if (!user) {
+    console.log(user)
     return (
       <div className="bg-white rounded-xl shadow-md p-8 text-center">
         <p className="text-stone-600">Failed to load profile data</p>

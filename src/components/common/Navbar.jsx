@@ -1,28 +1,36 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Menu,
   X,
   Bus,
   User,
-  LogOut,
   LayoutDashboard,
   Ticket,
   ChevronDown,
+  LogOutIcon,
 } from "lucide-react";
+import avatarImg from '../../assets/avatarImg.jpg'
 import useAuth from "../../hooks/useAuth";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import toast from "react-hot-toast";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user, logOut } = useAuth();
+  const isLoggedIn = !!user; 
 
-  const { user } = useAuth();
-  const isLoggedIn = !!user; // Derive from user existence instead of hardcoding
-
-  const handleLogout = () => {
-    toast("Logout functionality - connect to Firebase signOut");
-  };
+const handleLogout = async () => {
+  try {
+    await logOut(); 
+    toast("Successfully logged out!");
+    navigate("/login");
+  } catch (error) {
+    console.error("Logout error:", error);
+    toast("Logout failed. Please try again.");
+  }
+};
 
   // Helper to get fallback user props
   const getUserDisplay = () => user?.displayName || "User";
@@ -71,14 +79,14 @@ const Navbar = () => {
 
           {/* Desktop User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center gap-4">
-            {isLoggedIn ? (
+            {isLoggedIn && user ? (
               <div className="relative">
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-stone-100 transition-colors"
                 >
                   <img
-                    src={getUserPhoto()}
+                    src={user && user.photoURL ? user.photoURL : avatarImg}
                     alt={getUserDisplay()}
                     className="w-8 h-8 rounded-full border-2 border-amber-500"
                     onError={(e) => {
@@ -89,7 +97,7 @@ const Navbar = () => {
                     <p className="text-sm font-semibold text-stone-800">
                       {getUserDisplay()}
                     </p>
-                    <p className="text-xs text-stone-500">User</p>
+                    <p className="text-xs text-stone-500">{user.displayName}</p>
                   </div>
                   <ChevronDown
                     className={`w-4 h-4 text-stone-600 transition-transform ${
@@ -108,38 +116,38 @@ const Navbar = () => {
                       <p className="text-xs text-stone-500">{getUserEmail()}</p>
                     </div>
 
-                    <a
-                      href="/dashboard/profile"
+                    <Link
+                      to="user/profile"
                       className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
                     >
                       <User className="w-4 h-4 text-stone-600" />
                       <span className="text-sm text-stone-700">My Profile</span>
-                    </a>
+                    </Link>
 
-                    <a
-                      href="/dashboard"
+                    <Link
+                      to="/dashboard"
                       className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
                     >
                       <LayoutDashboard className="w-4 h-4 text-stone-600" />
                       <span className="text-sm text-stone-700">Dashboard</span>
-                    </a>
+                    </Link>
 
-                    <a
-                      href="/dashboard/bookings"
+                    <Link
+                      to="user/bookings"
                       className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
                     >
                       <Ticket className="w-4 h-4 text-stone-600" />
                       <span className="text-sm text-stone-700">
                         My Bookings
                       </span>
-                    </a>
+                    </Link>
 
                     <div className="border-t border-stone-200 mt-2 pt-2">
                       <button
                         onClick={handleLogout}
                         className="flex items-center gap-3 px-4 py-2 hover:bg-red-50 transition-colors w-full text-left"
                       >
-                        <LogOut className="w-4 h-4 text-red-600" />
+                        <LogOutIcon className="w-4 h-4 text-red-600" />
                         <span className="text-sm text-red-600 font-medium">
                           Logout
                         </span>
@@ -150,11 +158,17 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <Link to="/login" className="px-4 py-2 text-stone-700 hover:text-amber-600 font-medium transition-colors">
-                    Login
+                <Link
+                  to="/login"
+                  className="px-4 py-2 text-stone-700 hover:text-amber-600 font-medium transition-colors"
+                >
+                  Login
                 </Link>
-                <Link to="/register" className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
-                    Register
+                <Link
+                  to="/register"
+                  className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                >
+                  Register
                 </Link>
               </div>
             )}
@@ -185,12 +199,12 @@ const Navbar = () => {
               </a>
               {isLoggedIn ? (
                 <>
-                  <a
+                  <Link
                     href="/all-tickets"
                     className="px-4 py-2 text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
                   >
                     All Tickets
-                  </a>
+                  </Link>
                   <a
                     href="/dashboard"
                     className="px-4 py-2 text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
@@ -202,9 +216,9 @@ const Navbar = () => {
                   <div className="px-4 py-3 mt-2 border-t border-stone-200">
                     <div className="flex items-center gap-3 mb-3">
                       <img
-                        src={getUserPhoto()}
+                        src={user && user.photoURL ? user.photoURL : avatarImg}
                         alt={getUserDisplay()}
-                        className="w-10 h-10 rounded-full border-2 border-amber-500"
+                        className="w-8 h-8 rounded-full border-2 border-amber-500"
                         onError={(e) => {
                           e.target.src = "/default-avatar.png";
                         }} // Fallback on load error
@@ -223,7 +237,7 @@ const Navbar = () => {
                       onClick={handleLogout}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-colors"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOutIcon className="w-4 h-4" />
                       Logout
                     </button>
                   </div>
@@ -236,8 +250,11 @@ const Navbar = () => {
                   >
                     Login
                   </Link>
-                    <Link to="/register" className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
-                      Register
+                  <Link
+                    to="/register"
+                    className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                  >
+                    Register
                   </Link>
                 </div>
               )}

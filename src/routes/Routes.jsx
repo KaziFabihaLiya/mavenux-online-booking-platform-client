@@ -23,11 +23,13 @@ import ManageUsers from "../pages/protected/Dashboard/Admin/ManageUsers";
 import AdvertiseTickets from "../pages/protected/Dashboard/Admin/AdvertiseTickets";
 // Payment
 import PaymentSuccess from "../pages/protected/PaymentSuccess";
-import RoleRoute from "./RoleRoute";
 import PaymentCancel from "../pages/protected/PaymentCancel";
 import NotFound from "../pages/public/NotFound";
 import LoginForm from "../components/forms/LoginForm";
 import RegisterForm from "../components/forms/RegisterForm";
+import ForgetPassword from "../components/common/ForgotPassword";
+import AdminRoute from "./AdminRoute";
+import VendorRoute from "./VendorRoute";
 
 const router = createBrowserRouter([
   {
@@ -59,6 +61,10 @@ const router = createBrowserRouter([
         path: "/register",
         element: <RegisterForm />,
       },
+      {
+        path: "/forgot-password",
+        element: <ForgetPassword />,
+      },
     ],
   },
 
@@ -75,25 +81,25 @@ const router = createBrowserRouter([
       {
         path: "user/profile",
         element: (
-          <RoleRoute allowedRoles={["user", "vendor", "admin"]}>
-            <Profile />
-          </RoleRoute>
+          <PrivateRoutes>
+              <Profile />
+          </PrivateRoutes>
         ),
       },
       {
         path: "user/bookings",
         element: (
-          <RoleRoute allowedRoles={["user"]}>
-            <MyBookedTickets />
-          </RoleRoute>
+          <PrivateRoutes>
+              <MyBookedTickets />
+          </PrivateRoutes>
         ),
       },
       {
         path: "user/transactions",
         element: (
-          <RoleRoute allowedRoles={["user"]}>
-            <TransactionHistory />
-          </RoleRoute>
+          <PrivateRoutes>
+              <TransactionHistory />
+          </PrivateRoutes>
         ),
       },
 
@@ -101,41 +107,51 @@ const router = createBrowserRouter([
       {
         path: "vendor/profile",
         element: (
-          <RoleRoute allowedRoles={["vendor", "admin"]}>
-            <Profile />
-          </RoleRoute>
+          <PrivateRoutes>
+            <VendorRoute>
+              <Profile />
+            </VendorRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "vendor/add-ticket",
         element: (
-          <RoleRoute allowedRoles={["vendor"]}>
-            <AddTicket />
-          </RoleRoute>
+          <PrivateRoutes>
+            <VendorRoute>
+              <AddTicket />
+            </VendorRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "vendor/my-tickets",
         element: (
-          <RoleRoute allowedRoles={["vendor"]}>
-            <MyAddedTickets />
-          </RoleRoute>
+          <PrivateRoutes>
+            <VendorRoute>
+              <MyAddedTickets />
+            </VendorRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "vendor/bookings",
         element: (
-          <RoleRoute allowedRoles={["vendor"]}>
-            <RequestedBookings />
-          </RoleRoute>
+          <PrivateRoutes>
+            <VendorRoute>
+              <RequestedBookings />
+            </VendorRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "vendor/revenue",
         element: (
-          <RoleRoute allowedRoles={["vendor"]}>
+          <PrivateRoutes>
+          <VendorRoute>
             <RevenueOverview />
-          </RoleRoute>
+          </VendorRoute>
+          </PrivateRoutes>
         ),
       },
 
@@ -143,33 +159,41 @@ const router = createBrowserRouter([
       {
         path: "admin/profile",
         element: (
-          <RoleRoute allowedRoles={["admin"]}>
-            <Profile />
-          </RoleRoute>
+          <PrivateRoutes>
+            <AdminRoute>
+              <Profile />
+            </AdminRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "admin/manage-tickets",
         element: (
-          <RoleRoute allowedRoles={["admin"]}>
-            <ManageTickets />
-          </RoleRoute>
+          <PrivateRoutes>
+            <AdminRoute>
+              <ManageTickets />
+            </AdminRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "admin/manage-users",
         element: (
-          <RoleRoute allowedRoles={["admin"]}>
-            <ManageUsers />
-          </RoleRoute>
+          <PrivateRoutes>
+            <AdminRoute>
+              <ManageUsers />
+            </AdminRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "admin/advertise",
         element: (
-          <RoleRoute allowedRoles={["admin"]}>
-            <AdvertiseTickets />
-          </RoleRoute>
+          <PrivateRoutes>
+            <AdminRoute>
+              <AdvertiseTickets />
+            </AdminRoute>
+          </PrivateRoutes>
         ),
       },
     ],
