@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import axiosInstance from "../api/axios";
+import { axiosInstance } from "./useAxiosSecure";
+
 
 export const useUserTransactions = (userId) => {
   return useQuery({

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import { Link } from "react-router";
+import toast from "react-hot-toast";
 
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -20,7 +21,7 @@ const Navbar = () => {
   const isLoggedIn = !!user; // Derive from user existence instead of hardcoding
 
   const handleLogout = () => {
-    alert("Logout functionality - connect to Firebase signOut");
+    toast("Logout functionality - connect to Firebase signOut");
   };
 
   // Helper to get fallback user props
@@ -52,12 +53,12 @@ const Navbar = () => {
             </a>
             {isLoggedIn && (
               <>
-                <a
-                  href="/all-tickets"
+                <Link
+                  to="/all-tickets"
                   className="text-stone-700 hover:text-amber-600 font-medium transition-colors"
                 >
                   All Tickets
-                </a>
+                </Link>
                 <a
                   href="/dashboard"
                   className="text-stone-700 hover:text-amber-600 font-medium transition-colors"
@@ -152,7 +153,7 @@ const Navbar = () => {
                 <Link to="/login" className="px-4 py-2 text-stone-700 hover:text-amber-600 font-medium transition-colors">
                     Login
                 </Link>
-                <Link to="/signup" className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+                <Link to="/register" className="px-6 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
                     Register
                 </Link>
               </div>
@@ -235,7 +236,7 @@ const Navbar = () => {
                   >
                     Login
                   </Link>
-                    <Link to="/signup" className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
+                    <Link to="/register" className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all">
                       Register
                   </Link>
                 </div>

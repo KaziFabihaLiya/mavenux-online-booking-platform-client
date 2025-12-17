@@ -14,7 +14,8 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import LoadingSpinner from "../../components/common/LoadingSpinner";
+import LoadingSpinner from "../../../../components/common/LoadingSpinner";
+
 
 export default function AddTicket() {
   const [loading, setLoading] = useState(false);

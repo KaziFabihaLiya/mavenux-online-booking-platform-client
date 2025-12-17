@@ -10,7 +10,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 // EXPLANATION:
 // This Register component creates new user accounts with Firebase
@@ -18,7 +18,7 @@ import { useNavigate } from "react-router";
 // Shows real-time password strength feedback
 // Handles both email/password and Google authentication
 
-export default function RegisterPage() {
+const  RegisterForm = () => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -127,6 +127,7 @@ export default function RegisterPage() {
         setError("Password is too weak. Please use a stronger password.");
       } else {
         setError("Registration failed. Please try again.");
+        console.error("Full error details:", err);
       }
     } finally {
       setLoading(false);
@@ -396,12 +397,12 @@ export default function RegisterPage() {
           {/* Login Link */}
           <p className="mt-6 text-center text-sm text-stone-600">
             Already have an account?{" "}
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="text-amber-600 hover:text-amber-700 font-semibold transition-colors"
             >
               Sign In
-            </a>
+            </Link>
           </p>
         </div>
 
@@ -420,3 +421,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+export default RegisterForm;

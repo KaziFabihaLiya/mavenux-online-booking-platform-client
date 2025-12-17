@@ -1,23 +1,15 @@
 
 import { createBrowserRouter } from "react-router";
 import MainLayout from "../layouts/MainLayout";
-import Error from "../components/common/Error";
 import Home from "../pages/public/Home";
 import TicketDetails from "../pages/protected/TicketDetails";
-import Login from "../pages/public/Login";
-import Register from "../pages/public/Register";
 import PrivateRoutes from "./PrivateRoutes";
 import MyBookedTickets from "../pages/protected/Dashboard/User/MyBookedTickets";
 import Profile from "../pages/protected/Dashboard/User/Profile";
 import ManageTickets from "../pages/protected/Dashboard/Admin/ManageTickets";
 import AllTickets from "../pages/public/AllTickets";
 import DashboardLayout from "../pages/protected/Dashboard/DashboardLayout";
-import LoginForm from "../components/forms/LoginForm";
-import RegisterForm from "../components/forms/RegisterForm";
-
-
 // Public Pages
-import NotFound from "../pages/public/NotFound";
 
 // User Dashboard
 import TransactionHistory from "../pages/protected/Dashboard/User/TransactionHistory";
@@ -31,7 +23,11 @@ import ManageUsers from "../pages/protected/Dashboard/Admin/ManageUsers";
 import AdvertiseTickets from "../pages/protected/Dashboard/Admin/AdvertiseTickets";
 // Payment
 import PaymentSuccess from "../pages/protected/PaymentSuccess";
+import RoleRoute from "./RoleRoute";
 import PaymentCancel from "../pages/protected/PaymentCancel";
+import NotFound from "../pages/public/NotFound";
+import LoginForm from "../components/forms/LoginForm";
+import RegisterForm from "../components/forms/RegisterForm";
 
 const router = createBrowserRouter([
   {
@@ -44,24 +40,24 @@ const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: "/tickets",
+        path: "/all-tickets",
         element: <AllTickets />,
       },
       {
         path: "/tickets/:id",
         element: (
-          <PrivateRoute>
+          <PrivateRoutes>
             <TicketDetails />
-          </PrivateRoute>
+          </PrivateRoutes>
         ),
       },
       {
         path: "/login",
-        element: <Login />,
+        element: <LoginForm />,
       },
       {
         path: "/register",
-        element: <Register />,
+        element: <RegisterForm />,
       },
     ],
   },
@@ -70,9 +66,9 @@ const router = createBrowserRouter([
   {
     path: "/dashboard",
     element: (
-      <PrivateRoute>
+      <PrivateRoutes>
         <DashboardLayout />
-      </PrivateRoute>
+      </PrivateRoutes>
     ),
     children: [
       // USER ROUTES
@@ -183,17 +179,17 @@ const router = createBrowserRouter([
   {
     path: "/payment/success",
     element: (
-      <PrivateRoute>
+      <PrivateRoutes>
         <PaymentSuccess />
-      </PrivateRoute>
+      </PrivateRoutes>
     ),
   },
   {
     path: "/payment/cancel",
     element: (
-      <PrivateRoute>
+      <PrivateRoutes>
         <PaymentCancel />
-      </PrivateRoute>
+      </PrivateRoutes>
     ),
   },
 

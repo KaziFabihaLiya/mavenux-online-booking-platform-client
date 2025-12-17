@@ -1,96 +1,60 @@
-import { useState, useEffect } from "react";
+// src/pages/protected/Dashboard/User/TransactionHistory.jsx - WITH REACT QUERY
+import { useState } from "react";
 import {
   CreditCard,
   Calendar,
   CheckCircle,
   Download,
   Search,
+  Loader2,
 } from "lucide-react";
 import moment from "moment";
+import { useUserTransactions } from "../../../../hooks/useTransactions";
 import useAuth from "../../../../hooks/useAuth";
 
-// EXPLANATION:
-// This component fetches and displays all Stripe payment transactions
-// Shows: Transaction ID, Amount, Ticket Title, Payment Date
-// Includes search and filter functionality
-// Table format with responsive design
-
 export default function TransactionHistory() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Get user from AuthContext
-  const { user } = useAuth();
-  const userId = user.uid; 
-
-  useEffect(() => {
-    fetchTransactions();
-  }, [userId]);
-
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-
-      // FETCH FROM YOUR BACKEND API
-      const response = await fetch(`/api/transactions/user/${userId}`);
-      const data = await response.json();
-      setTransactions(data.data);
-
-      // Mock data for demonstration
-      const mockTransactions = [
-        {
-          _id: "txn001",
-          transactionId: "txn_1234567890abcdef",
-          ticketTitle: "Dhaka to Chittagong - Intercity Train",
-          amount: 800,
-          paymentDate: "2025-12-11T16:30:00",
-          paymentMethod: "card",
-          status: "completed",
-        },
-        {
-          _id: "txn002",
-          transactionId: "txn_9876543210fedcba",
-          ticketTitle: "Dhaka to Chittagong - AC Bus",
-          amount: 1200,
-          paymentDate: "2025-12-12T10:15:00",
-          paymentMethod: "card",
-          status: "completed",
-        },
-        {
-          _id: "txn003",
-          transactionId: "txn_abcd1234efgh5678",
-          ticketTitle: "Dhaka to Sylhet - Non-AC Bus",
-          amount: 1800,
-          paymentDate: "2025-12-13T14:20:00",
-          paymentMethod: "card",
-          status: "completed",
-        },
-      ];
-
-      setTransactions(mockTransactions);
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Fetch transactions with React Query
+  const { data: transactions = [], isLoading } = useUserTransactions(user?._id);
 
   // Filter transactions based on search
   const filteredTransactions = transactions.filter(
     (txn) =>
-      txn.ticketTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      txn.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
+      txn.ticketTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      txn.transactionId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Calculate total spent
-  const totalSpent = transactions.reduce((sum, txn) => sum + txn.amount, 0);
+  const totalSpent = transactions.reduce(
+    (sum, txn) => sum + (txn.amount || 0),
+    0
+  );
 
-  if (loading) {
+  const exportCSV = () => {
+    const headers = "Transaction ID,Ticket Title,Amount,Payment Date\n";
+    const csv = transactions
+      .map(
+        (t) =>
+          `${t.transactionId},"${t.ticketTitle}",${t.amount},${t.paymentDate}`
+      )
+      .join("\n");
+
+    const blob = new Blob([headers + csv], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `transactions-${moment().format("YYYY-MM-DD")}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
           <p className="text-stone-600">Loading transactions...</p>
         </div>
       </div>
@@ -205,7 +169,7 @@ export default function TransactionHistory() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <CreditCard className="w-4 h-4 text-stone-400" />
-                        <code className="text-sm font-mono text-stone-700">
+                        <code className="text-sm font-mono text-stone-700 truncate max-w-[200px]">
                           {transaction.transactionId}
                         </code>
                       </div>
@@ -221,7 +185,7 @@ export default function TransactionHistory() {
                     {/* Amount */}
                     <td className="px-6 py-4">
                       <p className="text-sm font-bold text-green-600">
-                        ৳{transaction.amount.toLocaleString()}
+                        ৳{transaction.amount?.toLocaleString()}
                       </p>
                     </td>
 
@@ -261,7 +225,10 @@ export default function TransactionHistory() {
                 Showing {filteredTransactions.length} of {transactions.length}{" "}
                 transactions
               </p>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-300 rounded-lg text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors">
+              <button
+                onClick={exportCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-stone-300 rounded-lg text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
+              >
                 <Download className="w-4 h-4" />
                 Export CSV
               </button>
@@ -283,7 +250,7 @@ export default function TransactionHistory() {
                 Completed
               </span>
               <p className="text-xl font-bold text-green-600">
-                ৳{transaction.amount.toLocaleString()}
+                ৳{transaction.amount?.toLocaleString()}
               </p>
             </div>
 
@@ -307,44 +274,3 @@ export default function TransactionHistory() {
     </div>
   );
 }
-
-/*
-===========================================
-INTEGRATION GUIDE
-===========================================
-
-1. Import and use in DashboardLayout:
-   import TransactionHistory from './TransactionHistory';
-   
-   case 'transactions':
-     return <TransactionHistory />;
-
-2. Fetch from your backend:
-   const response = await fetch(`/api/transactions/user/${userId}`);
-   const data = await response.json();
-   setTransactions(data.data);
-
-3. Backend endpoint (already created):
-   GET /api/transactions/user/:userId
-   Returns: Array of transaction objects
-
-4. Export CSV functionality (optional):
-   const exportCSV = () => {
-     const csv = transactions.map(t => 
-       `${t.transactionId},${t.ticketTitle},${t.amount},${t.paymentDate}`
-     ).join('\n');
-     
-     const blob = new Blob([csv], { type: 'text/csv' });
-     const url = window.URL.createObjectURL(blob);
-     const a = document.createElement('a');
-     a.href = url;
-     a.download = 'transactions.csv';
-     a.click();
-   };
-
-5. TanStack Query version (optional, explained later):
-   const { data, isLoading } = useQuery({
-     queryKey: ['transactions', userId],
-     queryFn: () => fetch(`/api/transactions/user/${userId}`).then(r => r.json())
-   });
-*/

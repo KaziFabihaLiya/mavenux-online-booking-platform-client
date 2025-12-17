@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 // EXPLANATION:
 // This Login component integrates with Firebase Authentication
@@ -9,7 +9,7 @@ import { useNavigate } from "react-router";
 // Form validation ensures password requirements are met
 // Error messages are displayed for user feedback
 
-export default function LoginForm() {
+ const LoginForm = () => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -185,12 +185,12 @@ export default function LoginForm() {
 
             {/* Forgot Password Link */}
             <div className="flex items-center justify-end">
-              <a
-                href="/forgot-password"
+              <Link
+                to="/forgot-password"
                 className="text-sm text-amber-600 hover:text-amber-700 font-medium transition-colors"
               >
                 Forgot Password?
-              </a>
+              </Link>
             </div>
 
             {/* Submit Button */}
@@ -247,12 +247,12 @@ export default function LoginForm() {
           {/* Register Link */}
           <p className="mt-6 text-center text-sm text-stone-600">
             Don't have an account?{" "}
-            <a
-              href="/register"
+            <Link
+              to="/register"
               className="text-amber-600 hover:text-amber-700 font-semibold transition-colors"
             >
               Sign Up
-            </a>
+            </Link>
           </p>
         </div>
 
@@ -271,7 +271,7 @@ export default function LoginForm() {
     </div>
   );
 }
-
+export default LoginForm;
 /* 
 ===========================================
 HOW TO INTEGRATE WITH YOUR EXISTING FIREBASE

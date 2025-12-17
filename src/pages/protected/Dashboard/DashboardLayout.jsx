@@ -1,6 +1,6 @@
-// DashboardLayout.jsx - UPDATED VERSION WITH REAL USER DATA
-
+// src/pages/protected/Dashboard/DashboardLayout.jsx
 import { useState } from "react";
+import { Outlet, useNavigate, useLocation } from "react-router";
 import {
   ChevronRight,
   CreditCard,
@@ -18,40 +18,93 @@ import {
 } from "lucide-react";
 import useAuth from "../../../hooks/useAuth";
 
-import Profile from "./User/Profile";
-import MyBookedTickets from "./User/MyBookedTickets";
-import TransactionHistory from "./User/TransactionHistory";
-
-const DashboardLayout = () => {
+export default function DashboardLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeView, setActiveView] = useState("profile");
-
-  // GET REAL USER FROM AUTH CONTEXT
   const { user, logOut } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  // Determine user role (you might store this in Firestore or your backend)
-  // For now, defaulting to 'user' - you can fetch this from your backend
-  const userRole = user?.role || "user"; // Get from your user document in Firestore/MongoDB
+  const userRole = user?.role || "user";
 
   const userMenuItems = [
-    { id: "profile", label: "User Profile", icon: User },
-    { id: "booked", label: "My Booked Tickets", icon: Ticket },
-    { id: "transactions", label: "Transaction History", icon: CreditCard },
+    {
+      id: "profile",
+      label: "User Profile",
+      icon: User,
+      path: "/dashboard/user/profile",
+    },
+    {
+      id: "booked",
+      label: "My Booked Tickets",
+      icon: Ticket,
+      path: "/dashboard/user/bookings",
+    },
+    {
+      id: "transactions",
+      label: "Transaction History",
+      icon: CreditCard,
+      path: "/dashboard/user/transactions",
+    },
   ];
 
   const vendorMenuItems = [
-    { id: "profile", label: "Vendor Profile", icon: User },
-    { id: "add-ticket", label: "Add Ticket", icon: PlusCircle },
-    { id: "my-tickets", label: "My Added Tickets", icon: Package },
-    { id: "bookings", label: "Requested Bookings", icon: FileText },
-    { id: "revenue", label: "Revenue Overview", icon: DollarSign },
+    {
+      id: "profile",
+      label: "Vendor Profile",
+      icon: User,
+      path: "/dashboard/vendor/profile",
+    },
+    {
+      id: "add-ticket",
+      label: "Add Ticket",
+      icon: PlusCircle,
+      path: "/dashboard/vendor/add-ticket",
+    },
+    {
+      id: "my-tickets",
+      label: "My Added Tickets",
+      icon: Package,
+      path: "/dashboard/vendor/my-tickets",
+    },
+    {
+      id: "bookings",
+      label: "Requested Bookings",
+      icon: FileText,
+      path: "/dashboard/vendor/bookings",
+    },
+    {
+      id: "revenue",
+      label: "Revenue Overview",
+      icon: DollarSign,
+      path: "/dashboard/vendor/revenue",
+    },
   ];
 
   const adminMenuItems = [
-    { id: "profile", label: "Admin Profile", icon: User },
-    { id: "manage-tickets", label: "Manage Tickets", icon: Ticket },
-    { id: "manage-users", label: "Manage Users", icon: Users },
-    { id: "advertise", label: "Advertise Tickets", icon: Settings },
+    {
+      id: "profile",
+      label: "Admin Profile",
+      icon: User,
+      path: "/dashboard/admin/profile",
+    },
+    {
+      id: "manage-tickets",
+      label: "Manage Tickets",
+      icon: Ticket,
+      path: "/dashboard/admin/manage-tickets",
+    },
+    {
+      id: "manage-users",
+      label: "Manage Users",
+      icon: Users,
+      path: "/dashboard/admin/manage-users",
+    },
+    {
+      id: "advertise",
+      label: "Advertise Tickets",
+      icon: Settings,
+      path: "/dashboard/admin/advertise",
+    },
   ];
 
   const getMenuItems = () => {
@@ -67,18 +120,15 @@ const DashboardLayout = () => {
 
   const menuItems = getMenuItems();
 
-  // HANDLE LOGOUT
   const handleLogout = async () => {
     try {
       await logOut();
-      // Navigate to home (use useNavigate from react-router-dom)
-      // navigate('/');
+      navigate("/");
     } catch (error) {
       console.error("Logout error:", error);
     }
   };
 
-  // GET USER INITIALS FOR AVATAR
   const getInitials = () => {
     if (!user?.displayName) return "U";
     return user.displayName
@@ -89,28 +139,8 @@ const DashboardLayout = () => {
       .slice(0, 2);
   };
 
-  const renderContent = () => {
-    switch (activeView) {
-      case "profile":
-        return <Profile />;
-      case "booked":
-        return <MyBookedTickets />;
-      case "transactions":
-        return <TransactionHistory />;
-      default:
-        return (
-          <div className="bg-white rounded-xl shadow-md p-8 text-center">
-            <h3 className="text-xl font-semibold text-stone-600 mb-2">
-              {menuItems.find((item) => item.id === activeView)?.label ||
-                "Dashboard"}
-            </h3>
-            <p className="text-stone-500">This section is under development</p>
-          </div>
-        );
-    }
-  };
+  const isActive = (path) => location.pathname === path;
 
-  // SHOW LOADING STATE WHILE AUTH IS LOADING
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -141,9 +171,9 @@ const DashboardLayout = () => {
           {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveView(item.id)}
+              onClick={() => navigate(item.path)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-all ${
-                activeView === item.id
+                isActive(item.path)
                   ? "bg-amber-500 text-white shadow-md"
                   : "text-stone-700 hover:bg-stone-100"
               }`}
@@ -152,7 +182,7 @@ const DashboardLayout = () => {
               {isSidebarOpen && (
                 <span className="font-medium">{item.label}</span>
               )}
-              {isSidebarOpen && activeView === item.id && (
+              {isSidebarOpen && isActive(item.path) && (
                 <ChevronRight className="w-4 h-4 ml-auto" />
               )}
             </button>
@@ -191,7 +221,6 @@ const DashboardLayout = () => {
               <p className="text-xs text-stone-500 capitalize">{userRole}</p>
             </div>
 
-            {/* USER AVATAR - DYNAMIC */}
             {user?.photoURL ? (
               <img
                 src={user.photoURL}
@@ -206,94 +235,11 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-6">{renderContent()}</main>
+        {/* Content Area - Render Nested Routes */}
+        <main className="flex-1 overflow-y-auto p-6">
+          <Outlet />
+        </main>
       </div>
     </div>
   );
-};
-
-export default DashboardLayout;
-
-/*
-============================================
-HOW TO USE THIS IN YOUR PROJECT
-============================================
-
-1. REPLACE your existing DashboardLayout.jsx with this code
-
-2. CREATE the component files:
-   - src/components/dashboard/UserProfile.jsx (use the artifact I created)
-   - src/components/dashboard/MyBookedTickets.jsx (use the artifact I created)
-   - src/components/dashboard/TransactionHistory.jsx (create or use existing)
-
-3. IMPORT the components at the top:
-   import UserProfile from './UserProfile';
-   import MyBookedTickets from './MyBookedTickets';
-
-4. YOUR useAuth HOOK should return:
-   {
-     user: Firebase user object,
-     loading: boolean,
-     logOut: function
-   }
-
-5. IF YOU STORE USER ROLE IN FIRESTORE/MONGODB:
-   
-   // Fetch user role from your backend
-   useEffect(() => {
-     const fetchUserRole = async () => {
-       const response = await fetch(`/api/users/${user.uid}`);
-       const data = await response.json();
-       setUserRole(data.role); // 'user', 'vendor', or 'admin'
-     };
-     
-     if (user) fetchUserRole();
-   }, [user]);
-
-6. REMOVE the demo role switcher dropdown (it was just for testing)
-
-============================================
-KEY CHANGES FROM YOUR ORIGINAL CODE
-============================================
-
-✅ Uses real user.displayName instead of hardcoded "Rakib Hassan"
-✅ Uses real user.email instead of hardcoded "user@example.com"
-✅ Shows user.photoURL if available, otherwise shows initials
-✅ Calls actual logOut function from AuthContext
-✅ Removed demo role switcher
-✅ Added loading state while auth is initializing
-✅ Removed hardcoded UserProfile and MyBookedTickets content
-✅ Now imports real components that fetch data from API
-
-============================================
-FILE STRUCTURE
-============================================
-
-src/
-├── components/
-│   └── dashboard/
-│       ├── DashboardLayout.jsx (this file)
-│       ├── UserProfile.jsx (artifact: user_profile_dynamic)
-│       ├── MyBookedTickets.jsx (artifact: my_booked_tickets_dynamic)
-│       └── TransactionHistory.jsx (create this)
-├── hooks/
-│   └── useAuth.js (your existing hook)
-└── contexts/
-    ├── AuthContext.jsx (your existing context)
-    └── AuthProvider.jsx (your existing provider)
-
-============================================
-TESTING CHECKLIST
-============================================
-
-□ Login and verify user name shows in top bar
-□ Verify user avatar/initials display correctly
-□ Test sidebar navigation between sections
-□ Verify logout button works
-□ Check mobile responsiveness
-□ Test User Profile page shows real data
-□ Test My Booked Tickets page loads bookings
-□ Verify countdown timers work
-□ Test "Pay Now" button functionality
-*/
+}

@@ -1,10 +1,11 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axiosInstance from "../api/axios";
-import toast from "react-hot-toast";
+// src/hooks/useTicket.js
+import { useQuery } from "@tanstack/react-query";
+import useAxiosSecure from "./useAxiosSecure";
 
 // GET all tickets with filters
 export const useTickets = (filters = {}) => {
-  const { from, to, transportType, sortBy, page, limit } = filters;
+  const axiosSecure = useAxiosSecure();
+  const { from, to, transportType, sortBy, page = 1, limit = 9 } = filters;
 
   return useQuery({
     queryKey: ["tickets", filters],
@@ -14,10 +15,10 @@ export const useTickets = (filters = {}) => {
       if (to) params.append("to", to);
       if (transportType) params.append("transportType", transportType);
       if (sortBy) params.append("sortBy", sortBy);
-      if (page) params.append("page", page);
-      if (limit) params.append("limit", limit);
+      params.append("page", page);
+      params.append("limit", limit);
 
-      const { data } = await axiosInstance.get(`/api/tickets?${params}`);
+      const { data } = await axiosSecure.get(`/api/tickets?${params}`);
       return data;
     },
   });
@@ -25,10 +26,12 @@ export const useTickets = (filters = {}) => {
 
 // GET single ticket
 export const useTicket = (ticketId) => {
+  const axiosSecure = useAxiosSecure();
+
   return useQuery({
     queryKey: ["ticket", ticketId],
     queryFn: async () => {
-      const { data } = await axiosInstance.get(`/api/tickets/${ticketId}`);
+      const { data } = await axiosSecure.get(`/api/tickets/${ticketId}`);
       return data.data;
     },
     enabled: !!ticketId,
@@ -37,10 +40,12 @@ export const useTicket = (ticketId) => {
 
 // GET latest tickets
 export const useLatestTickets = () => {
+  const axiosSecure = useAxiosSecure();
+
   return useQuery({
     queryKey: ["tickets", "latest"],
     queryFn: async () => {
-      const { data } = await axiosInstance.get("/api/tickets/latest/all");
+      const { data } = await axiosSecure.get("/api/tickets/latest/all");
       return data.data;
     },
   });
@@ -48,85 +53,13 @@ export const useLatestTickets = () => {
 
 // GET advertised tickets
 export const useAdvertisedTickets = () => {
+  const axiosSecure = useAxiosSecure();
+
   return useQuery({
     queryKey: ["tickets", "advertised"],
     queryFn: async () => {
-      const { data } = await axiosInstance.get("/api/tickets/advertised/all");
+      const { data } = await axiosSecure.get("/api/tickets/advertised/all");
       return data.data;
-    },
-  });
-};
-
-// GET vendor's tickets
-export const useVendorTickets = (vendorId) => {
-  return useQuery({
-    queryKey: ["tickets", "vendor", vendorId],
-    queryFn: async () => {
-      const { data } = await axiosInstance.get(
-        `/api/tickets/vendor/${vendorId}`
-      );
-      return data.data;
-    },
-    enabled: !!vendorId,
-  });
-};
-
-// CREATE ticket
-export const useCreateTicket = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (ticketData) => {
-      const { data } = await axiosInstance.post("/api/tickets", ticketData);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["tickets"]);
-      toast.success("Ticket created successfully! Waiting for admin approval.");
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || "Failed to create ticket");
-    },
-  });
-};
-
-// UPDATE ticket
-export const useUpdateTicket = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ ticketId, ticketData }) => {
-      const { data } = await axiosInstance.put(
-        `/api/tickets/${ticketId}`,
-        ticketData
-      );
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["tickets"]);
-      toast.success("Ticket updated successfully!");
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || "Failed to update ticket");
-    },
-  });
-};
-
-// DELETE ticket
-export const useDeleteTicket = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (ticketId) => {
-      const { data } = await axiosInstance.delete(`/api/tickets/${ticketId}`);
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries(["tickets"]);
-      toast.success("Ticket deleted successfully!");
-    },
-    onError: (error) => {
-      toast.error(error.response?.data?.message || "Failed to delete ticket");
     },
   });
 };

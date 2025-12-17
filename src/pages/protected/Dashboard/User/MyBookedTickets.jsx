@@ -1,3 +1,4 @@
+// src/pages/protected/Dashboard/User/MyBookedTickets.jsx - WITH REACT QUERY
 import { useState, useEffect } from "react";
 import {
   MapPin,
@@ -11,28 +12,25 @@ import {
   Loader2,
 } from "lucide-react";
 import moment from "moment";
-
-// EXPLANATION:
-// - Fetches user's bookings from backend API
-// - Shows real-time countdown for each booking
-// - "Pay Now" button appears when vendor accepts
-// - Integrates with Stripe for payment
-// - Disables payment if departure time has passed
-// - Shows different statuses: pending, accepted, rejected, paid
+import { useUserBookings } from "../../../../hooks/useBookings";
+import useAuth from "../../../../hooks/useAuth";
+import { loadStripe } from "@stripe/stripe-js";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
+import toast from "react-hot-toast";
 
 export default function MyBookedTickets() {
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const axiosSecure = useAxiosSecure();
+
+  // Fetch bookings with React Query
+  const {
+    data: bookings = [],
+    isLoading,
+    refetch,
+  } = useUserBookings(user?._id);
+
   const [countdowns, setCountdowns] = useState({});
   const [processingPayment, setProcessingPayment] = useState(null);
-
-  // Get user from AuthContext
-  // const { user } = useContext(AuthContext);
-  const userId = "user001"; // Replace with user.uid
-
-  useEffect(() => {
-    fetchBookings();
-  }, [userId]);
 
   useEffect(() => {
     // Update countdowns every second
@@ -42,95 +40,6 @@ export default function MyBookedTickets() {
 
     return () => clearInterval(interval);
   }, [bookings]);
-
-  const fetchBookings = async () => {
-    try {
-      setLoading(true);
-
-      // FETCH FROM YOUR BACKEND API
-      // Replace with: const response = await fetch(`/api/bookings/user/${userId}`);
-      // const data = await response.json();
-      // setBookings(data.data);
-
-      // Mock data for demonstration
-      const mockBookings = [
-        {
-          _id: "booking001",
-          ticketId: "ticket001",
-          ticketTitle: "Dhaka to Chittagong - AC Bus",
-          bookingQuantity: 2,
-          unitPrice: 1200,
-          totalPrice: 2400,
-          from: "Dhaka",
-          to: "Chittagong",
-          departureDate: "2025-12-20",
-          departureTime: "22:00",
-          status: "accepted",
-          image:
-            "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=500",
-          createdAt: "2025-12-10T15:00:00",
-          transactionId: null,
-        },
-        {
-          _id: "booking002",
-          ticketId: "ticket006",
-          ticketTitle: "Dhaka to Barisal - Luxury Launch",
-          bookingQuantity: 3,
-          unitPrice: 1500,
-          totalPrice: 4500,
-          from: "Dhaka",
-          to: "Barisal",
-          departureDate: "2025-12-23",
-          departureTime: "20:00",
-          status: "pending",
-          image:
-            "https://images.unsplash.com/photo-1506197603052-3cc9c3a201bd?w=500",
-          createdAt: "2025-12-11T12:00:00",
-          transactionId: null,
-        },
-        {
-          _id: "booking003",
-          ticketId: "ticket002",
-          ticketTitle: "Dhaka to Cox's Bazar - Sleeper Coach",
-          bookingQuantity: 2,
-          unitPrice: 1800,
-          totalPrice: 3600,
-          from: "Dhaka",
-          to: "Cox's Bazar",
-          departureDate: "2025-12-22",
-          departureTime: "23:30",
-          status: "rejected",
-          image:
-            "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=500",
-          createdAt: "2025-12-10T09:00:00",
-          transactionId: null,
-        },
-        {
-          _id: "booking004",
-          ticketId: "ticket004",
-          ticketTitle: "Dhaka to Chittagong - Intercity Train",
-          bookingQuantity: 1,
-          unitPrice: 800,
-          totalPrice: 800,
-          from: "Dhaka",
-          to: "Chittagong",
-          departureDate: "2025-12-19",
-          departureTime: "07:00",
-          status: "paid",
-          image:
-            "https://images.unsplash.com/photo-1474487548417-781cb71495f3?w=500",
-          createdAt: "2025-12-09T14:00:00",
-          transactionId: "txn_1234567890",
-        },
-      ];
-
-      setBookings(mockBookings);
-    } catch (error) {
-      console.error("Error fetching bookings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateCountdowns = () => {
     const newCountdowns = {};
@@ -169,42 +78,27 @@ export default function MyBookedTickets() {
     // Check if departure time has passed
     const countdown = countdowns[booking._id];
     if (countdown?.isPast) {
-      alert("Cannot pay for a booking that has already departed");
+      toast.error("Cannot pay for a booking that has already departed");
       return;
     }
 
     setProcessingPayment(booking._id);
 
     try {
-      // STRIPE PAYMENT INTEGRATION
-      // Step 1: Create Stripe checkout session from your backend
-      // const response = await fetch('/api/payment/create-session', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     bookingId: booking._id,
-      //     amount: booking.totalPrice,
-      //     ticketTitle: booking.ticketTitle
-      //   })
-      // });
-      // const data = await response.json();
+      // Create Stripe checkout session
+      const response = await axiosSecure.post("/api/payment/create-session", {
+        bookingId: booking._id,
+      });
 
-      // Step 2: Redirect to Stripe Checkout
-      // const stripe = await loadStripe('your_publishable_key');
-      // await stripe.redirectToCheckout({
-      //   sessionId: data.sessionId
-      // });
-
-      // For demo: Simulate payment
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      alert("✅ Payment successful! Your booking is confirmed.");
-
-      // Refresh bookings
-      fetchBookings();
+      // Redirect to Stripe Checkout
+      if (response.data.url) {
+        window.location.href = response.data.url;
+      }
     } catch (error) {
       console.error("Payment error:", error);
-      alert("Payment failed. Please try again.");
+      toast.error(
+        error.response?.data?.message || "Payment failed. Please try again."
+      );
     } finally {
       setProcessingPayment(null);
     }
@@ -251,11 +145,11 @@ export default function MyBookedTickets() {
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
           <p className="text-stone-600">Loading your bookings...</p>
         </div>
       </div>
@@ -275,7 +169,7 @@ export default function MyBookedTickets() {
           Start your journey by booking your first ticket!
         </p>
         <a
-          href="/all-tickets"
+          href="/tickets"
           className="inline-block bg-gradient-to-r from-amber-500 to-orange-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
         >
           Browse Tickets
@@ -322,17 +216,26 @@ export default function MyBookedTickets() {
             key={booking._id}
             className="bg-white rounded-xl shadow-md overflow-hidden border border-stone-200 hover:shadow-xl transition-all"
           >
-            {/* Ticket Image */}
-            <div className="relative h-40 overflow-hidden">
-              <img
-                src={booking.image}
-                alt={booking.ticketTitle}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-3 right-3">
+            {/* Ticket Image (if available) */}
+            {booking.image && (
+              <div className="relative h-40 overflow-hidden">
+                <img
+                  src={booking.image}
+                  alt={booking.ticketTitle}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute top-3 right-3">
+                  {getStatusBadge(booking.status)}
+                </div>
+              </div>
+            )}
+
+            {/* If no image, show status badge at top */}
+            {!booking.image && (
+              <div className="p-3 bg-stone-50 border-b">
                 {getStatusBadge(booking.status)}
               </div>
-            </div>
+            )}
 
             {/* Booking Details */}
             <div className="p-5">
@@ -432,9 +335,11 @@ export default function MyBookedTickets() {
                   <p className="text-sm font-semibold text-blue-700">
                     Payment Confirmed
                   </p>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Txn: {booking.transactionId}
-                  </p>
+                  {booking.transactionId && (
+                    <p className="text-xs text-blue-600 mt-1 truncate">
+                      Txn: {booking.transactionId}
+                    </p>
+                  )}
                 </div>
               )}
 

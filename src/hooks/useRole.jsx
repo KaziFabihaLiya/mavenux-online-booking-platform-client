@@ -1,6 +1,7 @@
+// src/hooks/useRole.jsx - UPDATED VERSION
 import useAuth from "./useAuth";
-import useAxiosSecure from "./useAxiosSecure";
 import { useQuery } from "@tanstack/react-query";
+import useAxiosSecure from "./useAxiosSecure";
 
 const useRole = () => {
   const { user, loading } = useAuth();
@@ -10,14 +11,24 @@ const useRole = () => {
     enabled: !loading && !!user?.email,
     queryKey: ["role", user?.email],
     queryFn: async () => {
-      const result = await axiosSecure(`/user/role`);
-      console.log(result);
-      return result.data.role;
+      // Fetch user role from backend
+      const result = await axiosSecure.get("/api/auth/me");
+      return result.data.data.role;
     },
   });
 
-  //   return { role, isRoleLoading }
   return [role, isRoleLoading];
 };
 
 export default useRole;
+
+// ============================================
+// ALTERNATIVE: Simpler version if role is in user object
+// ============================================
+// Since we store role in AuthContext when user logs in,
+// you can also just use:
+//
+// const useRole = () => {
+//   const { user, loading } = useAuth();
+//   return [user?.role || "user", loading];
+// };
