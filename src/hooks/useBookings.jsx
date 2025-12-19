@@ -4,16 +4,20 @@ import useAxiosSecure from "./useAxiosSecure";
 import toast from "react-hot-toast";
 
 // GET user's bookings
-export const useUserBookings = (userId) => {
+// GET user's bookings - FIXED: No userId parameter needed
+export const useUserBookings = () => {
   const axiosSecure = useAxiosSecure();
 
   return useQuery({
-    queryKey: ["bookings", "user", userId],
+    queryKey: ["bookings", "user"],
     queryFn: async () => {
-      const { data } = await axiosSecure.get(`/api/bookings/user/${userId}`);
+      const { data } = await axiosSecure.get(`/api/bookings/user/`);
       return data.data;
     },
-    enabled: !!userId,
+    retry: 1,
+    onError: (error) => {
+      console.error("Failed to fetch bookings:", error);
+    }
   });
 };
 

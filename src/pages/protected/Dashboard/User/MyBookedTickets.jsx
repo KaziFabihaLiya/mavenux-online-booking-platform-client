@@ -1,4 +1,4 @@
-// src/pages/protected/Dashboard/User/MyBookedTickets.jsx - WITH REACT QUERY
+// src/pages/protected/Dashboard/User/MyBookedTickets.jsx - FIXED
 import { useState, useEffect } from "react";
 import {
   MapPin,
@@ -14,7 +14,6 @@ import {
 import moment from "moment";
 import { useUserBookings } from "../../../../hooks/useBookings";
 import useAuth from "../../../../hooks/useAuth";
-import { loadStripe } from "@stripe/stripe-js";
 import useAxiosSecure from "../../../../hooks/useAxiosSecure";
 import toast from "react-hot-toast";
 
@@ -22,15 +21,19 @@ export default function MyBookedTickets() {
   const { user } = useAuth();
   const axiosSecure = useAxiosSecure();
 
-  // Fetch bookings with React Query
-  const {
-    data: bookings = [],
-    isLoading,
-    refetch,
-  } = useUserBookings(user?._id);
+  // FIXED: Remove userId parameter
+  const { data: bookings = [], isLoading, error, refetch } = useUserBookings();
 
   const [countdowns, setCountdowns] = useState({});
   const [processingPayment, setProcessingPayment] = useState(null);
+
+  // Show error if booking fetch fails
+  useEffect(() => {
+    if (error) {
+      console.error("Error loading bookings:", error);
+      toast.error("Failed to load bookings");
+    }
+  }, [error]);
 
   useEffect(() => {
     // Update countdowns every second
@@ -156,6 +159,28 @@ export default function MyBookedTickets() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-12 text-center">
+        <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle className="w-12 h-12 text-red-600" />
+        </div>
+        <h3 className="text-2xl font-bold text-stone-800 mb-2">
+          Failed to Load Bookings
+        </h3>
+        <p className="text-stone-600 mb-6">
+          {error.response?.data?.message || "Please try again later"}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="bg-amber-500 text-white px-6 py-2 rounded-lg hover:bg-amber-600"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (bookings.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-md p-12 text-center">
@@ -169,7 +194,7 @@ export default function MyBookedTickets() {
           Start your journey by booking your first ticket!
         </p>
         <a
-          href="/tickets"
+          href="/all-tickets"
           className="inline-block bg-gradient-to-r from-amber-500 to-orange-600 text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
         >
           Browse Tickets

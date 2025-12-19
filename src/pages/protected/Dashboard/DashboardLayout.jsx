@@ -14,6 +14,8 @@ import {
   Ticket,
   User,
   Users,
+  Store,
+  UserPlus,
   X,
 } from "lucide-react";
 import useAuth from "../../../hooks/useAuth";
@@ -44,6 +46,12 @@ export default function DashboardLayout() {
       label: "Transaction History",
       icon: CreditCard,
       path: "/dashboard/user/transactions",
+    },
+    {
+      id: "become-vendor",
+      label: "Become a Vendor",
+      icon: Store,
+      path: "/dashboard/user/become-vendor",
     },
   ];
 
@@ -104,6 +112,12 @@ export default function DashboardLayout() {
       label: "Advertise Tickets",
       icon: Settings,
       path: "/dashboard/admin/advertise",
+    },
+    {
+      id: "vendor-requests",
+      label: "Vendor Requests",
+      icon: UserPlus,
+      path: "/dashboard/admin/vendor-requests",
     },
   ];
 

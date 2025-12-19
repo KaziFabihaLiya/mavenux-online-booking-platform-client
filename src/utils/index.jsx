@@ -1,56 +1,66 @@
-import axios from "axios";
+// src/utils/index.js - FIXED VERSION
 
-// export const imageUpload = async (imageData) => {
-//   const formData = new FormData();
-//   formData.append("image", imageData);
+// Save or update user in MongoDB
+export const saveOrUpdateUser = async ({ name, email, image, uid }) => {
+  try {
+    console.log("💾 Saving user to MongoDB:", { name, email, image, uid });
 
-//   const { data } = await axios.post(
-//     `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
-//     formData
-//   );
-//   return data?.data?.display_url;
-// };
-export const imageUpload = async (imageData) => {
-  const formData = new FormData();
-  formData.append("image", imageData);
+    const userData = {
+      email: email,
+      displayName: name || "User",
+      photoURL: image || null,
+      uid: uid,
+    };
 
-  const { data } = await axios.post(
-    `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
-    formData
-  );
-  return data?.data?.display_url;
-};
-// upload image using cloudinary
-// example post endpoint: https://api.cloudinary.com/v1_1/<cloud name>/image/upload
-export const imageUploadCloudinary = async (imageData) => {
-  const formData = new FormData();
-  formData.append("file", imageData);
-  formData.append(
-    "upload_preset",
-    import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-  );
+    const response = await fetch("http://localhost:5000/user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
+    });
 
-  const { data } = await axios.post(
-    `https://api.cloudinary.com/v1_1/${
-      import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-    }/image/upload`,
-    formData
-  );
-  return data.secure_url;
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to save user");
+    }
+
+    console.log("✅ User saved successfully:", data);
+    return data;
+  } catch (error) {
+    console.error("❌ Error saving user:", error);
+    throw error;
+  }
 };
 
-// save or update user in db
-// export const saveOrUpdateUser = async (userData) => {
-//   const { data } = await axios.post(
-//     `${import.meta.env.VITE_API_URL}/user`,
-//     userData
-//   );
-//   return data;
-// };
-export const saveOrUpdateUser = async (userData) => {
-  const { data } = await axios.post(
-    "/api/user", // ← Proxied path (no full localhost URL)
-    userData
-  );
-  return data;
+// Image upload to ImgBB
+export const imageUpload = async (imageFile) => {
+  if (!imageFile) return null;
+
+  try {
+    const formData = new FormData();
+    formData.append("image", imageFile);
+
+    const response = await fetch(
+      `https://api.imgbb.com/1/upload?key=${
+        import.meta.env.VITE_IMGBB_API_KEY
+      }`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error("Image upload failed");
+    }
+
+    return data.data.display_url;
+  } catch (error) {
+    console.error("Image upload error:", error);
+    throw error;
+  }
 };

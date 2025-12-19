@@ -1,11 +1,13 @@
 //# Hero, ads/latest sections
 import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Bus, Train, Ship, Plane, MapPin, Clock, Tag, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router';
 
 const Home = () => {
 
         const [currentSlide, setCurrentSlide] = useState(0);
         const [loading, setLoading] = useState(false);
+        const navigate = useNavigate();
 
         // Mock data for demonstration
         const advertisedTickets = [
@@ -207,8 +209,7 @@ const Home = () => {
                   </div>
 
                   <button
-                    onClick={() =>
-                      alert(`Navigate to ticket details: ${ticket._id}`)
+                    onClick={() => navigate(`/tickets/${ticket._id}`)
                     }
                     className="bg-amber-500 hover:bg-amber-600 text-white px-5 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-1"
                   >

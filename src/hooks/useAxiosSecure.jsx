@@ -15,12 +15,23 @@ const useAxiosSecure = () => {
 
     useEffect(() => {
         // intercept request
-        const requestInterceptor = axiosInstance.interceptors.request.use(
-          async (config) => {
-            config.headers.Authorization = `Bearer ${await user?.getIdToken}`;
-            return config;
+    const requestInterceptor = axiosInstance.interceptors.request.use(
+      async (config) => {
+        try {
+          // FIX: getIdToken is a method, need to call it with ()
+          if (user?.getIdToken) {
+            const token = await user.getIdToken();
+            config.headers.Authorization = `Bearer ${token}`;
           }
-        );
+        } catch (error) {
+          console.error("Error getting ID token:", error);
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
 
       // Add response interceptor
       const responseInterceptor = axiosInstance.interceptors.response.use(

@@ -30,6 +30,8 @@ import RegisterForm from "../components/forms/RegisterForm";
 import ForgetPassword from "../components/common/ForgotPassword";
 import AdminRoute from "./AdminRoute";
 import VendorRoute from "./VendorRoute";
+import VendorRequest from "../pages/protected/Dashboard/Admin/VendorRequest";
+import BecomeVendor from "../pages/protected/Dashboard/User/BecomeVendor";
 
 const router = createBrowserRouter([
   {
@@ -82,7 +84,7 @@ const router = createBrowserRouter([
         path: "user/profile",
         element: (
           <PrivateRoutes>
-              <Profile />
+            <Profile />
           </PrivateRoutes>
         ),
       },
@@ -90,7 +92,7 @@ const router = createBrowserRouter([
         path: "user/bookings",
         element: (
           <PrivateRoutes>
-              <MyBookedTickets />
+            <MyBookedTickets />
           </PrivateRoutes>
         ),
       },
@@ -98,7 +100,15 @@ const router = createBrowserRouter([
         path: "user/transactions",
         element: (
           <PrivateRoutes>
-              <TransactionHistory />
+            <TransactionHistory />
+          </PrivateRoutes>
+        ),
+      }, // In USER ROUTES section:
+      {
+        path: "user/become-vendor",
+        element: (
+          <PrivateRoutes>
+            <BecomeVendor />
           </PrivateRoutes>
         ),
       },
@@ -148,9 +158,9 @@ const router = createBrowserRouter([
         path: "vendor/revenue",
         element: (
           <PrivateRoutes>
-          <VendorRoute>
-            <RevenueOverview />
-          </VendorRoute>
+            <VendorRoute>
+              <RevenueOverview />
+            </VendorRoute>
           </PrivateRoutes>
         ),
       },
@@ -182,6 +192,16 @@ const router = createBrowserRouter([
           <PrivateRoutes>
             <AdminRoute>
               <ManageUsers />
+            </AdminRoute>
+          </PrivateRoutes>
+        ),
+      },
+      {
+        path: "admin/vendor-requests",
+        element: (
+          <PrivateRoutes>
+            <AdminRoute>
+              <VendorRequest />
             </AdminRoute>
           </PrivateRoutes>
         ),
