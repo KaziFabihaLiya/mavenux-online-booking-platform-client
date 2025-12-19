@@ -1,4 +1,4 @@
-// src/pages/protected/Dashboard/DashboardLayout.jsx
+// src/pages/protected/Dashboard/DashboardLayout.jsx - FIXED
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import {
@@ -17,16 +17,20 @@ import {
   Store,
   UserPlus,
   X,
+  Loader2,
 } from "lucide-react";
 import useAuth from "../../../hooks/useAuth";
 import useRole from "../../../hooks/useRole";
 
-export default function DashboardLayout() {
+const DashboardLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const { user, logOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [role, isRoleLoading] = useRole();
+
+  console.log("🔍 Dashboard - Current Role:", role); // Debug
+  console.log("🔍 Dashboard - Role Loading:", isRoleLoading); // Debug
 
   const userMenuItems = [
     {
@@ -121,7 +125,10 @@ export default function DashboardLayout() {
     },
   ];
 
+  // ✅ FIX: Dynamically get menu items based on role
   const getMenuItems = () => {
+    if (!role) return userMenuItems; // Default to user if role not loaded yet
+
     switch (role) {
       case "vendor":
         return vendorMenuItems;
@@ -155,13 +162,29 @@ export default function DashboardLayout() {
 
   const isActive = (path) => location.pathname === path;
 
-  if (!user) {
+  // ✅ FIX: Show loading state while role is being fetched
+  if (!user || isRoleLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+      <div className="flex items-center justify-center min-h-screen bg-stone-50">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 border-4 text-amber-500 animate-spin mx-auto mb-4" />
+          <p className="text-stone-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
+
+  // ✅ FIX: Get role badge color
+  const getRoleBadgeColor = () => {
+    switch (role) {
+      case "admin":
+        return "bg-purple-100 text-purple-700";
+      case "vendor":
+        return "bg-blue-100 text-blue-700";
+      default:
+        return "bg-stone-100 text-stone-700";
+    }
+  };
 
   return (
     <div className="flex h-screen bg-stone-50">
@@ -177,8 +200,13 @@ export default function DashboardLayout() {
               !isSidebarOpen && "hidden md:block md:text-center"
             }`}
           >
-            {isSidebarOpen ? "Dashboard" : "TB"}
+            {isSidebarOpen ? "Dashboard" : "DB"}
           </h1>
+          {isSidebarOpen && (
+            <p className="text-xs text-stone-500 mt-1 capitalize">
+              {role || "User"} Panel
+            </p>
+          )}
         </div>
 
         <nav className="p-4">
@@ -232,7 +260,11 @@ export default function DashboardLayout() {
               <p className="font-semibold text-stone-800">
                 {user?.displayName || "User"}
               </p>
-              <p className="text-xs text-stone-500 capitalize">{role}</p>
+              <p
+                className={`text-xs px-2 py-0.5 rounded-full inline-block ${getRoleBadgeColor()}`}
+              >
+                {role || "user"}
+              </p>
             </div>
 
             {user?.photoURL ? (
@@ -256,4 +288,6 @@ export default function DashboardLayout() {
       </div>
     </div>
   );
-}
+};
+
+export default DashboardLayout;

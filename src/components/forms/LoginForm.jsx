@@ -148,7 +148,7 @@ import { saveOrUpdateUser } from "../../utils";
                  {loading ? (
                    <LoadingSpinner className="animate-spin m-auto" />
                  ) : (
-                   "Signing in..."
+                   "Login"
                  )}
                </button>
              </div>
