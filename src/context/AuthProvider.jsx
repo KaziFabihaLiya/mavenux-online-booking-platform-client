@@ -9,10 +9,12 @@ import {
   GoogleAuthProvider,
   updateProfile,
 } from "firebase/auth";
-import { auth } from "../utils/firebase.config.js"; 
+import { auth } from "../utils/firebase.config.js";
 import { AuthContext } from "./AuthContext";
 
 const googleProvider = new GoogleAuthProvider();
+// Always prompt account selection to avoid silently signing into a cached account
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -28,9 +30,19 @@ const AuthProvider = ({ children }) => {
     return signInWithEmailAndPassword(auth, email, password);
   };
 
-  const signInWithGoogle = () => {
+  const signInWithGoogle = async () => {
     setLoading(true);
-    return signInWithPopup(auth, googleProvider);
+    try {
+      // ensure the provider prompts account chooser each time
+      googleProvider.setCustomParameters({ prompt: "select_account" });
+      const result = await signInWithPopup(auth, googleProvider);
+      return result;
+    } catch (err) {
+      throw err;
+    } finally {
+      // Ensure loading state is turned off for UI
+      setLoading(false);
+    }
   };
 
   const logOut = () => {

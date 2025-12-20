@@ -1,98 +1,115 @@
 import { useState } from "react";
-import {
-  Eye,
-  EyeOff,
-  Mail,
-  Lock,
-  User,
-  AlertCircle,
-} from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle } from "lucide-react";
 import useAuth from "../../hooks/useAuth";
 import { Link, useLocation, useNavigate } from "react-router";
 import toast from "react-hot-toast";
 import { imageUpload, saveOrUpdateUser } from "../../utils";
 import { useForm } from "react-hook-form";
 
-
-const  RegisterForm = () => {
+const RegisterForm = () => {
   const {
-    user, 
+    user,
     createUser,
     signInWithGoogle,
     updateUserProfile,
     loading,
+    setLoading,
   } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-const navigate = useNavigate();
-const location = useLocation();
-const from = location.state || "/";
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state || "/";
 
-// React Hook Form
-const {
-  register,
-  handleSubmit,
-  formState: { errors },
-} = useForm();
+  // React Hook Form
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm();
 
-console.log(errors);
-const onSubmit = async (data) => {
-  const { name, image, email, password } = data;
-  const imageFile = image[0];
-  // const formData = new FormData()
-  // formData.append('image', imageFile)
+  console.log(errors);
+  const onSubmit = async (data) => {
+    const { name, image, email, password } = data;
+    const imageFile = image[0];
+    // const formData = new FormData()
+    // formData.append('image', imageFile)
 
-  try {
-    // const { data } = await axios.post(
-    //   `https://api.imgbb.com/1/upload?key=${
-    //     import.meta.env.VITE_IMGBB_API_KEY
-    //   }`,
-    //   formData
-    // )
-    const imageURL = await imageUpload(imageFile);
-    // const cloudinaryImageUrl = await imageUploadCloudinary(imageFile)
-    // console.log('Cloudinary Response ----->', cloudinaryImageUrl)
+    try {
+      // const { data } = await axios.post(
+      //   `https://api.imgbb.com/1/upload?key=${
+      //     import.meta.env.VITE_IMGBB_API_KEY
+      //   }`,
+      //   formData
+      // )
+      const imageURL = await imageUpload(imageFile);
+      // const cloudinaryImageUrl = await imageUploadCloudinary(imageFile)
+      // console.log('Cloudinary Response ----->', cloudinaryImageUrl)
 
-    //1. User Registration
-    const result = await createUser(email, password);
+      //1. User Registration
+      const result = await createUser(email, password);
 
-    await saveOrUpdateUser({ name, email, image: imageURL });
+      await saveOrUpdateUser({ name, email, image: imageURL });
 
-    // 2. Generate image url from selected file
+      // 2. Generate image url from selected file
 
-    //3. Save username & profile photo
-    await updateUserProfile(name, imageURL);
+      //3. Save username & profile photo
+      await updateUserProfile(name, imageURL);
 
-    navigate(from, { replace: true });
-    toast.success("Signup Successful");
+      navigate(from, { replace: true });
+      toast.success("Signup Successful");
 
-    console.log(result);
-  } catch (err) {
-    console.log(err);
-    toast.error(err?.message);
-  }
-};
+      console.log(result);
+    } catch (err) {
+      console.log(err);
+      toast.error(err?.message);
+    }
+  };
 
-    const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    let signedInUser = null;
+    try {
+      const result = await signInWithGoogle();
+      signedInUser = result?.user;
+
       try {
-        //User Registration using google
-        const { user } = await signInWithGoogle();
-
         await saveOrUpdateUser({
-          name: user?.displayName,
-          email: user?.email,
-          image: user?.photoURL,
-          uid: user?.uid,
+          name: signedInUser?.displayName,
+          email: signedInUser?.email,
+          image: signedInUser?.photoURL,
+          uid: signedInUser?.uid,
         });
-
-        navigate(from, { replace: true });
-        toast.success("Signup Successful");
-      } catch (err) {
-        toast.error(err.message);
-      } finally {
-        if (user) navigate(from);
+      } catch (dbErr) {
+        console.error("DB save failed, but auth ok:", dbErr);
+        toast.error("Signed up but failed to sync to DB. Please retry later.");
       }
-    };
+
+      toast.success("Signup successful");
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      const errCode = err?.code || err?.message || "";
+
+      if (errCode.includes("popup-closed-by-user")) {
+        toast.error(
+          "Sign-in popup closed before completing. Please try again."
+        );
+      } else if (errCode.includes("popup-blocked")) {
+        toast.error(
+          "Popup blocked by your browser. Allow popups or try incognito."
+        );
+      } else if (errCode.includes("account-exists-with-different-credential")) {
+        toast.error(
+          "An account exists with the same email using another provider. Try that provider or contact support."
+        );
+      } else {
+        toast.error(err?.message || "Google sign-in failed. Try again.");
+      }
+    } finally {
+      setLoading(false);
+      if (signedInUser) navigate(from, { replace: true });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-stone-100 flex items-center justify-center p-4 py-12">
@@ -190,7 +207,6 @@ const onSubmit = async (data) => {
                   <span className="text-stone-400 text-xs">(Optional)</span>
                 </label>
                 <div className="relative">
-                  
                   <input
                     name="image"
                     type="file"
@@ -331,5 +347,5 @@ const onSubmit = async (data) => {
       </div>
     </div>
   );
-}
+};
 export default RegisterForm;

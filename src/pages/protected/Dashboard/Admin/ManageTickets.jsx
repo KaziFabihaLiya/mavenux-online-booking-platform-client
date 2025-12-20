@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+// src/pages/protected/Dashboard/Admin/ManageTickets.jsx - FIXED WITH AUTH
+import { useState } from "react";
 import {
   CheckCircle,
   XCircle,
   Clock,
-  Eye,
   Search,
   Filter,
   MapPin,
@@ -13,80 +13,53 @@ import {
 } from "lucide-react";
 import moment from "moment";
 import toast from "react-hot-toast";
-
-// EXPLANATION:
-// Admin can view all vendor-submitted tickets
-// Approve button: Makes ticket visible on "All Tickets" page
-// Reject button: Ticket stays hidden, vendor can see rejection status
-// Shows ticket details, vendor info, and status
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
 
 export default function ManageTickets() {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState(null);
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    fetchAllTickets();
-  }, []);
+  // ✅ FIX: Fetch tickets with auth headers
+  const { data: tickets = [], isLoading } = useQuery({
+    queryKey: ["admin", "tickets"],
+    queryFn: async () => {
+      const { data } = await axiosSecure.get("/api/admin/tickets");
+      return data.data;
+    },
+  });
 
-  const fetchAllTickets = async () => {
-    try {
-      setLoading(true);
-
-      // FETCH FROM BACKEND
-      const response = await fetch("/api/admin/tickets");
-      const data = await response.json();
-      setTickets(data.data);
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to load tickets");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ FIX: Update ticket status with mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ ticketId, status }) => {
+      const { data } = await axiosSecure.put(
+        `/api/admin/tickets/${ticketId}/status`,
+        { status }
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(["admin", "tickets"]);
+      toast.success("Ticket status updated!");
+      setProcessingId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update ticket");
+      setProcessingId(null);
+    },
+  });
 
   const handleApprove = async (ticketId) => {
-    try {
-      setProcessingId(ticketId);
-
-      const response = await fetch(`/api/admin/tickets/${ticketId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "approved" }),
-      });
-
-      if (response.ok) {
-        toast.success("Ticket approved successfully!");
-        fetchAllTickets();
-      }
-    } catch (error) {
-      toast.error("Failed to approve ticket");
-    } finally {
-      setProcessingId(null);
-    }
+    setProcessingId(ticketId);
+    updateStatusMutation.mutate({ ticketId, status: "approved" });
   };
 
   const handleReject = async (ticketId) => {
-    try {
-      setProcessingId(ticketId);
-
-      const response = await fetch(`/api/admin/tickets/${ticketId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "rejected" }),
-      });
-
-      if (response.ok) {
-        toast.success("Ticket rejected");
-        fetchAllTickets();
-      }
-    } catch (error) {
-      toast.error("Failed to reject ticket");
-    } finally {
-      setProcessingId(null);
-    }
+    setProcessingId(ticketId);
+    updateStatusMutation.mutate({ ticketId, status: "rejected" });
   };
 
   // Filter tickets
@@ -94,10 +67,10 @@ export default function ManageTickets() {
     const matchesStatus =
       filterStatus === "all" || ticket.status === filterStatus;
     const matchesSearch =
-      ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.from.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.to.toLowerCase().includes(searchTerm.toLowerCase());
+      ticket.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.vendorName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.from?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ticket.to?.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesStatus && matchesSearch;
   });
@@ -131,7 +104,7 @@ export default function ManageTickets() {
     rejected: tickets.filter((t) => t.status === "rejected").length,
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -301,10 +274,10 @@ export default function ManageTickets() {
                     {/* Vendor */}
                     <td className="px-6 py-4">
                       <p className="font-medium text-stone-800">
-                        {ticket.vendorName}
+                        {ticket.vendorName || "Vendor"}
                       </p>
                       <p className="text-xs text-stone-500">
-                        {ticket.vendorEmail}
+                        {ticket.vendorEmail || "N/A"}
                       </p>
                     </td>
 
@@ -320,7 +293,10 @@ export default function ManageTickets() {
                           <>
                             <button
                               onClick={() => handleApprove(ticket._id)}
-                              disabled={processingId === ticket._id}
+                              disabled={
+                                processingId === ticket._id ||
+                                updateStatusMutation.isPending
+                              }
                               className="flex items-center gap-1 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                             >
                               {processingId === ticket._id ? (
@@ -332,7 +308,10 @@ export default function ManageTickets() {
                             </button>
                             <button
                               onClick={() => handleReject(ticket._id)}
-                              disabled={processingId === ticket._id}
+                              disabled={
+                                processingId === ticket._id ||
+                                updateStatusMutation.isPending
+                              }
                               className="flex items-center gap-1 px-3 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                             >
                               <XCircle className="w-4 h-4" />
@@ -362,11 +341,3 @@ export default function ManageTickets() {
     </div>
   );
 }
-
-/*
-INTEGRATION:
-1. Add to Admin sidebar in DashboardLayout
-2. Backend endpoint: PUT /api/admin/tickets/:id/status
-3. When approved: ticket shows in "All Tickets" page
-4. When rejected: vendor sees rejection in "My Added Tickets"
-*/

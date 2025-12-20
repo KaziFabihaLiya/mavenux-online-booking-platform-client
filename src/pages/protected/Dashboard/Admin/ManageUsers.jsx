@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// src/pages/protected/Dashboard/Admin/ManageUsers.jsx - FIXED WITH AUTH
+import { useState } from "react";
 import {
   Shield,
   AlertTriangle,
@@ -10,67 +11,79 @@ import {
   CheckCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
-
-// EXPLANATION:
-// Admin can view all users
-// Make Admin: Changes user role to 'admin'
-// Make Vendor: Changes user role to 'vendor'
-// Mark as Fraud: Only for vendors - hides all their tickets and blocks new tickets
-// Shows user info, current role, and actions
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
 
 export default function ManageUsers() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const axiosSecure = useAxiosSecure();
+  const queryClient = useQueryClient();
   const [processingId, setProcessingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  // ✅ FIX: Fetch users with auth headers
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["admin", "users"],
+    queryFn: async () => {
+      const { data } = await axiosSecure.get("/api/admin/users");
+      return data.data;
+    },
+  });
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
+  // ✅ FIX: Change role mutation
+  const changeRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }) => {
+      const { data } = await axiosSecure.put(
+        `/api/admin/users/${userId}/role`,
+        {
+          role,
+        }
+      );
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries(["admin", "users"]);
+      toast.success(`User role changed to ${variables.role}`);
+      setProcessingId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to change role");
+      setProcessingId(null);
+    },
+  });
 
-      // FETCH FROM BACKEND
-      const response = await fetch("/api/admin/users");
-      const data = await response.json();
-      setUsers(data.data);
-    } catch (error) {
-      console.error("Error:", error);
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ FIX: Mark fraud mutation
+  const markFraudMutation = useMutation({
+    mutationFn: async ({ userId, isFraud }) => {
+      const { data } = await axiosSecure.put(
+        `/api/admin/users/${userId}/fraud`,
+        { isFraud }
+      );
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries(["admin", "users"]);
+      toast.success(
+        variables.isFraud ? "Vendor marked as fraud" : "Fraud status removed"
+      );
+      setProcessingId(null);
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to update status");
+      setProcessingId(null);
+    },
+  });
 
   const handleChangeRole = async (userId, newRole) => {
-    try {
-      setProcessingId(userId);
-
-      const response = await fetch(`/api/admin/users/${userId}/role`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (response.ok) {
-        toast.success(`User role changed to ${newRole}`);
-        fetchUsers();
-      }
-    } catch (error) {
-      toast.error("Failed to change role");
-    } finally {
-      setProcessingId(null);
-    }
+    setProcessingId(userId);
+    changeRoleMutation.mutate({ userId, role: newRole });
   };
 
   const handleMarkFraud = async (userId, isFraud) => {
     const action = isFraud ? "mark as fraud" : "remove fraud status";
 
     if (
-      !confirm(
+      !window.confirm(
         `Are you sure you want to ${action}? This will ${
           isFraud
             ? "hide all tickets and block new submissions"
@@ -81,34 +94,16 @@ export default function ManageUsers() {
       return;
     }
 
-    try {
-      setProcessingId(userId);
-
-      const response = await fetch(`/api/admin/users/${userId}/fraud`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isFraud }),
-      });
-
-      if (response.ok) {
-        toast.success(
-          isFraud ? "Vendor marked as fraud" : "Fraud status removed"
-        );
-        fetchUsers();
-      }
-    } catch (error) {
-      toast.error("Failed to update fraud status");
-    } finally {
-      setProcessingId(null);
-    }
+    setProcessingId(userId);
+    markFraudMutation.mutate({ userId, isFraud });
   };
 
   // Filter users
   const filteredUsers = users.filter((user) => {
     const matchesRole = filterRole === "all" || user.role === filterRole;
     const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
 
     return matchesRole && matchesSearch;
   });
@@ -132,12 +127,12 @@ export default function ManageUsers() {
       <span
         className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}
       >
-        {role.toUpperCase()}
+        {role?.toUpperCase() || "USER"}
       </span>
     );
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -259,17 +254,17 @@ export default function ManageUsers() {
                         {user.photoURL ? (
                           <img
                             src={user.photoURL}
-                            alt={user.name}
+                            alt={user.displayName}
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
                           <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {user.name.charAt(0)}
+                            {user.displayName?.charAt(0) || "U"}
                           </div>
                         )}
                         <div>
                           <p className="font-semibold text-stone-800">
-                            {user.name}
+                            {user.displayName || "User"}
                           </p>
                           {user.isFraud && (
                             <span className="text-xs text-red-600 font-medium">
@@ -315,7 +310,10 @@ export default function ManageUsers() {
                         {user.role !== "admin" && (
                           <button
                             onClick={() => handleChangeRole(user._id, "admin")}
-                            disabled={processingId === user._id}
+                            disabled={
+                              processingId === user._id ||
+                              changeRoleMutation.isPending
+                            }
                             className="flex items-center gap-1 px-3 py-1.5 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                           >
                             {processingId === user._id ? (
@@ -331,7 +329,10 @@ export default function ManageUsers() {
                         {user.role !== "vendor" && (
                           <button
                             onClick={() => handleChangeRole(user._id, "vendor")}
-                            disabled={processingId === user._id}
+                            disabled={
+                              processingId === user._id ||
+                              changeRoleMutation.isPending
+                            }
                             className="flex items-center gap-1 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
                           >
                             <UserCog className="w-3 h-3" />
@@ -345,7 +346,10 @@ export default function ManageUsers() {
                             onClick={() =>
                               handleMarkFraud(user._id, !user.isFraud)
                             }
-                            disabled={processingId === user._id}
+                            disabled={
+                              processingId === user._id ||
+                              markFraudMutation.isPending
+                            }
                             className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
                               user.isFraud
                                 ? "bg-green-500 hover:bg-green-600 text-white"
@@ -368,14 +372,3 @@ export default function ManageUsers() {
     </div>
   );
 }
-
-/*
-INTEGRATION:
-1. Add to Admin sidebar in DashboardLayout
-2. Backend endpoints:
-   - PUT /api/admin/users/:id/role (body: { role: 'admin' | 'vendor' | 'user' })
-   - PUT /api/admin/users/:id/fraud (body: { isFraud: true | false })
-3. When marking as fraud:
-   - All vendor's tickets are hidden (status changed or filtered)
-   - Vendor cannot add new tickets
-*/

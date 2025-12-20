@@ -1,4 +1,4 @@
-// src/pages/protected/Dashboard/User/Profile.jsx
+// src/pages/protected/Dashboard/User/Profile.jsx - FULLY FUNCTIONAL
 import { useState } from "react";
 import {
   User,
@@ -11,18 +11,69 @@ import {
   Loader2,
   Camera,
 } from "lucide-react";
-import useAuth from "../../../../hooks/useAuth";
+
+import { useQuery } from "@tanstack/react-query";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
 import moment from "moment";
 import toast from "react-hot-toast";
+import useAuth from "../../../../hooks/useAuth";
+import useRole from "../../../../hooks/useRole";
 
 export default function Profile() {
-  const { user, updateUserProfile } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const [role, isRoleLoading] = useRole();
+  const axiosSecure = useAxiosSecure();
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    name: user?.displayName || "",
+    displayName: user?.displayName || "",
     photoURL: user?.photoURL || "",
+  });
+
+  // ✅ Fetch user stats from database
+  const { data: userStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["user-stats", user?.email],
+    enabled: !!user?.email,
+    queryFn: async () => {
+      try {
+        // Fetch user's bookings
+        const bookingsRes = await axiosSecure.get("/api/bookings/user/");
+        const bookings = bookingsRes.data.data || [];
+
+        // Fetch user's transactions
+        const userData = await axiosSecure.get("/api/auth/me");
+        const userId = userData.data.data._id;
+
+        const transactionsRes = await axiosSecure.get(
+          `/api/transactions/user/${userId}`
+        );
+        const transactions = transactionsRes.data.data || [];
+
+        // Calculate stats
+        const totalBookings = bookings.length;
+        const totalSpent = transactions.reduce(
+          (sum, txn) => sum + (txn.amount || 0),
+          0
+        );
+        const pendingTrips = bookings.filter(
+          (b) => b.status === "accepted" || b.status === "pending"
+        ).length;
+
+        return {
+          totalBookings,
+          totalSpent,
+          pendingTrips,
+        };
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+        return {
+          totalBookings: 0,
+          totalSpent: 0,
+          pendingTrips: 0,
+        };
+      }
+    },
   });
 
   const handleChange = (e) => {
@@ -32,104 +83,163 @@ export default function Profile() {
     });
   };
 
+  // ✅ FIX: Update profile with Firebase updateProfile
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
 
     try {
-      await updateUserProfile(formData.name, formData.photoURL);
+      // Import updateProfile from Firebase
+      const { updateProfile } = await import("firebase/auth");
+      const { auth } = await import("../../../../firebase/firebase.config");
+
+      // Update Firebase profile
+      await updateProfile(auth.currentUser, {
+        displayName: formData.displayName,
+        photoURL: formData.photoURL,
+      });
+
+      // Also update in MongoDB
+      await axiosSecure.post("/user", {
+        email: user.email,
+        displayName: formData.displayName,
+        photoURL: formData.photoURL,
+        uid: user.uid,
+      });
+
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+
+      // Force page reload to show updated data
+      window.location.reload();
     } catch (error) {
+      console.error("Profile update error:", error);
       toast.error(error.message || "Failed to update profile");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
   const handleCancel = () => {
     setFormData({
-      name: user?.displayName || "",
+      displayName: user?.displayName || "",
       photoURL: user?.photoURL || "",
     });
     setIsEditing(false);
   };
 
-  const getRoleBadge = () => {
-    const badges = {
-      admin: { bg: "bg-purple-100", text: "text-purple-700", label: "Admin" },
-      vendor: { bg: "bg-blue-100", text: "text-blue-700", label: "Vendor" },
-      user: { bg: "bg-stone-100", text: "text-stone-700", label: "User" },
-    };
-    const badge = badges[user?.role] || badges.user;
-    return (
-      <span
-        className={`px-4 py-2 rounded-full text-sm font-semibold ${badge.bg} ${badge.text}`}
-      >
-        {badge.label}
-      </span>
-    );
+  // ✅ Get role badge styling
+  const getRoleDisplay = () => {
+    switch (role) {
+      case "admin":
+        return {
+          bg: "bg-purple-100",
+          text: "text-purple-700",
+          label: "Admin",
+          gradient: "from-purple-500 to-purple-600",
+        };
+      case "vendor":
+        return {
+          bg: "bg-blue-100",
+          text: "text-blue-700",
+          label: "Vendor",
+          gradient: "from-blue-500 to-blue-600",
+        };
+      default:
+        return {
+          bg: "bg-amber-100",
+          text: "text-amber-700",
+          label: "User",
+          gradient: "from-amber-500 to-orange-600",
+        };
+    }
   };
 
-  if (!user) {
+  const roleDisplay = getRoleDisplay();
+
+  if (authLoading || isRoleLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
+          <p className="text-stone-600">Loading profile...</p>
+        </div>
       </div>
     );
   }
 
+  const getInitials = (name) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Profile Header Card */}
-      <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg overflow-hidden">
-        <div className="p-8 text-white">
-          <div className="flex flex-col md:flex-row items-center gap-6">
-            {/* Avatar */}
-            <div className="relative group">
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName}
-                  className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
-                />
-              ) : (
-                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center">
-                  <span className="text-5xl font-bold text-amber-600">
-                    {user.displayName?.charAt(0) || "U"}
-                  </span>
-                </div>
-              )}
-              {isEditing && (
-                <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="w-8 h-8 text-white" />
-                </div>
-              )}
-            </div>
-
-            {/* User Info */}
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold mb-2">
-                {user.displayName || "User"}
-              </h1>
-              <p className="text-amber-100 mb-3 flex items-center justify-center md:justify-start gap-2">
-                <Mail className="w-4 h-4" />
-                {user.email}
-              </p>
-              {getRoleBadge()}
-            </div>
-
-            {/* Edit Button */}
-            {!isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-white text-amber-600 rounded-lg font-semibold hover:bg-amber-50 transition-colors shadow-md"
-              >
-                <Edit2 className="w-4 h-4" />
-                Edit Profile
-              </button>
+      <div
+        className={`bg-gradient-to-br ${roleDisplay.gradient} rounded-2xl shadow-xl p-8 text-white`}
+      >
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          {/* Avatar */}
+          <div className="relative group">
+            {user.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt={user.displayName}
+                className="w-32 h-32 rounded-full border-4 border-white shadow-lg object-cover"
+              />
+            ) : (
+              <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-4xl font-bold">
+                {getInitials(user.displayName)}
+              </div>
+            )}
+            {isEditing && (
+              <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                <Camera className="w-8 h-8 text-white" />
+              </div>
             )}
           </div>
+
+          {/* User Info */}
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-3xl font-bold mb-2">
+              {user.displayName || "User"}
+            </h1>
+            <p className="text-white/90 mb-4 flex items-center justify-center md:justify-start gap-2">
+              <Mail className="w-4 h-4" />
+              {user.email}
+            </p>
+            <span
+              className={`px-4 py-1.5 ${roleDisplay.bg} ${roleDisplay.text} rounded-full text-sm font-semibold inline-block`}
+            >
+              {roleDisplay.label}
+            </span>
+          </div>
+
+          {/* Edit/Cancel Button */}
+          {!isEditing ? (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-amber-600 rounded-lg font-semibold hover:bg-amber-50 transition-colors shadow-md"
+            >
+              <Edit2 className="w-4 h-4" />
+              Edit Profile
+            </button>
+          ) : (
+            <button
+              onClick={handleCancel}
+              disabled={saving}
+              className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-lg font-semibold hover:bg-white/30 transition-colors"
+            >
+              <X className="w-4 h-4" />
+              Cancel
+            </button>
+          )}
         </div>
       </div>
 
@@ -152,8 +262,8 @@ export default function Profile() {
               </label>
               <input
                 type="text"
-                name="name"
-                value={formData.name}
+                name="displayName"
+                value={formData.displayName}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none"
@@ -194,10 +304,10 @@ export default function Profile() {
             <div className="flex gap-3">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? (
+                {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Saving...
@@ -208,15 +318,6 @@ export default function Profile() {
                     Save Changes
                   </>
                 )}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={loading}
-                className="flex items-center gap-2 px-6 py-3 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg font-semibold transition-colors"
-              >
-                <X className="w-4 h-4" />
-                Cancel
               </button>
             </div>
           </form>
@@ -240,7 +341,7 @@ export default function Profile() {
                   <span className="text-sm font-medium">Account Role</span>
                 </div>
                 <p className="text-stone-800 font-semibold capitalize">
-                  {user.role || "User"}
+                  {role || "User"}
                 </p>
               </div>
 
@@ -289,6 +390,51 @@ export default function Profile() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ✅ Dynamic Account Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md p-6 text-white">
+          <p className="text-blue-100 text-sm mb-2">Total Bookings</p>
+          {statsLoading ? (
+            <Loader2 className="w-8 h-8 animate-spin" />
+          ) : (
+            <>
+              <p className="text-4xl font-bold mb-1">
+                {userStats?.totalBookings || 0}
+              </p>
+              <p className="text-blue-100 text-xs">All time</p>
+            </>
+          )}
+        </div>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md p-6 text-white">
+          <p className="text-green-100 text-sm mb-2">Total Spent</p>
+          {statsLoading ? (
+            <Loader2 className="w-8 h-8 animate-spin" />
+          ) : (
+            <>
+              <p className="text-4xl font-bold mb-1">
+                ৳{userStats?.totalSpent?.toLocaleString() || 0}
+              </p>
+              <p className="text-green-100 text-xs">All time</p>
+            </>
+          )}
+        </div>
+
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-md p-6 text-white">
+          <p className="text-purple-100 text-sm mb-2">Pending Trips</p>
+          {statsLoading ? (
+            <Loader2 className="w-8 h-8 animate-spin" />
+          ) : (
+            <>
+              <p className="text-4xl font-bold mb-1">
+                {userStats?.pendingTrips || 0}
+              </p>
+              <p className="text-purple-100 text-xs">Upcoming</p>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Additional Info */}
