@@ -1,4 +1,3 @@
-
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
@@ -12,7 +11,10 @@ export default defineConfig({
         target: "http://localhost:5000", // Your backend PORT
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ""), // Keep /api prefix
+        // Preserve the /api prefix when proxying so backend routes like /api/tickets
+        // continue to match unchanged.
+        // Previously the rewrite removed /api which caused 404 "Route not found".
+        // (No rewrite function keeps the original path.)
       },
     },
   },

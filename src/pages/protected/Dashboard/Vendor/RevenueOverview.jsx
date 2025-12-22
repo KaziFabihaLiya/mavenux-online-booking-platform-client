@@ -1,4 +1,3 @@
-// Charts(Recharts);
 import { useState, useEffect } from "react";
 import {
   DollarSign,
@@ -6,7 +5,11 @@ import {
   Package,
   ShoppingBag,
   BarChart3,
+  XCircle,
 } from "lucide-react";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
+import useAuth from "../../../../hooks/useAuth";
+import toast from "react-hot-toast";
 import {
   LineChart,
   Line,
@@ -25,46 +28,67 @@ import {
 
 export default function RevenueOverview() {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     ticketsSold: 0,
     ticketsAdded: 0,
   });
 
-  const vendorId = "USER_ID_FROM_AUTH";
+  const axiosSecure = useAxiosSecure();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!authLoading && user) {
+      console.log("💰 Fetching revenue data for user:", user.email);
+      fetchData();
+    }
+  }, [user, authLoading]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      console.log("📡 Fetching tickets and bookings...");
 
       // Fetch vendor's tickets
-      const ticketsRes = await fetch(
-        `http://localhost:5000/api/tickets/vendor/${vendorId}`
-      );
-      const ticketsData = await ticketsRes.json();
+      const ticketsRes = await axiosSecure.get("/api/tickets/vendor/me");
+      const ticketsData = ticketsRes.data || { data: [] };
+      console.log("✅ Tickets received:", ticketsData);
 
       // Fetch vendor's bookings
-      const bookingsRes = await fetch(
-        `http://localhost:5000/api/bookings/vendor/${vendorId}`
-      );
-      const bookingsData = await bookingsRes.json();
+      const bookingsRes = await axiosSecure.get("/api/bookings/vendor/me");
+      const bookingsData = bookingsRes.data || { data: [] };
+      console.log("✅ Bookings received:", bookingsData);
 
-      const paidBookings = bookingsData.data.filter((b) => b.status === "paid");
+      // Show backend message if any
+      if (ticketsRes.data?.message || bookingsRes.data?.message) {
+        const msg = ticketsRes.data?.message || bookingsRes.data?.message;
+        toast(msg, { icon: "⚠️", duration: 5000 });
+      }
+
+      const paidBookings = (bookingsData.data || []).filter(
+        (b) => b.status === "paid"
+      );
 
       setStats({
-        totalRevenue: paidBookings.reduce((sum, b) => sum + b.totalPrice, 0),
-        ticketsSold: paidBookings.reduce(
-          (sum, b) => sum + b.bookingQuantity,
+        totalRevenue: paidBookings.reduce(
+          (sum, b) => sum + (b.totalPrice || 0),
           0
         ),
-        ticketsAdded: ticketsData.data.length,
+        ticketsSold: paidBookings.reduce(
+          (sum, b) => sum + (b.bookingQuantity || 0),
+          0
+        ),
+        ticketsAdded: (ticketsData.data || []).length,
       });
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error fetching revenue data:", error);
+      const errorMsg =
+        error.response?.data?.message || "Failed to load vendor analytics";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -94,12 +118,59 @@ export default function RevenueOverview() {
     { week: "W4", sales: 25 },
   ];
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-stone-200 border-t-amber-500"></div>
+          <p className="font-semibold text-stone-600">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-stone-200 border-t-amber-500"></div>
           <p className="font-semibold text-stone-600">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-8 px-4">
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-8 shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white bg-opacity-20 backdrop-blur-sm">
+              <BarChart3 className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h2 className="mb-1 text-3xl font-black text-white">
+                Revenue Overview
+              </h2>
+              <p className="text-emerald-100">
+                Track your performance & earnings
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-red-50 border-2 border-red-200 p-8 text-center">
+          <XCircle className="mx-auto mb-4 h-16 w-16 text-red-500" />
+          <h3 className="mb-2 text-2xl font-bold text-red-800">
+            Error Loading Analytics
+          </h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={fetchData}
+            className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -117,7 +188,9 @@ export default function RevenueOverview() {
             <h2 className="mb-1 text-3xl font-black text-white">
               Revenue Overview
             </h2>
-            <p className="text-emerald-100">Track your performance & earnings</p>
+            <p className="text-emerald-100">
+              Track your performance & earnings
+            </p>
           </div>
         </div>
       </div>
@@ -131,8 +204,12 @@ export default function RevenueOverview() {
             </div>
             <TrendingUp className="h-6 w-6 text-white opacity-75" />
           </div>
-          <p className="mb-2 text-sm font-medium text-green-100">Total Revenue</p>
-          <p className="text-4xl font-black text-white">৳{stats.totalRevenue}</p>
+          <p className="mb-2 text-sm font-medium text-green-100">
+            Total Revenue
+          </p>
+          <p className="text-4xl font-black text-white">
+            ৳{stats.totalRevenue}
+          </p>
           <p className="mt-2 text-xs text-green-100">From completed bookings</p>
         </div>
 
@@ -155,7 +232,9 @@ export default function RevenueOverview() {
             </div>
             <TrendingUp className="h-6 w-6 text-white opacity-75" />
           </div>
-          <p className="mb-2 text-sm font-medium text-purple-100">Tickets Added</p>
+          <p className="mb-2 text-sm font-medium text-purple-100">
+            Tickets Added
+          </p>
           <p className="text-4xl font-black text-white">{stats.ticketsAdded}</p>
           <p className="mt-2 text-xs text-purple-100">Active listings</p>
         </div>
@@ -274,7 +353,9 @@ export default function RevenueOverview() {
         </div>
 
         <div className="rounded-xl border-l-4 border-green-500 bg-white p-6 shadow-lg">
-          <p className="mb-2 text-sm font-semibold text-stone-600">This Month</p>
+          <p className="mb-2 text-sm font-semibold text-stone-600">
+            This Month
+          </p>
           <p className="text-3xl font-black text-stone-800">
             ৳{monthlyData[monthlyData.length - 1]?.revenue || 0}
           </p>
@@ -298,14 +379,3 @@ export default function RevenueOverview() {
     </div>
   );
 }
-
-/*
-BACKEND INTEGRATION:
-GET http://localhost:5000/api/tickets/vendor/:vendorId
-GET http://localhost:5000/api/bookings/vendor/:vendorId
-
-Calculate:
-- totalRevenue: sum of totalPrice where status = "paid"
-- ticketsSold: sum of bookingQuantity where status = "paid"
-- ticketsAdded: count of vendor's tickets
-*/

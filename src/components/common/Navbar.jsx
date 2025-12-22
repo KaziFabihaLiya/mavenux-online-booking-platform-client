@@ -9,7 +9,7 @@ import {
   ChevronDown,
   LogOutIcon,
 } from "lucide-react";
-import avatarImg from '../../assets/avatarImg.jpg'
+import avatarImg from "../../assets/avatarImg.jpg";
 import useAuth from "../../hooks/useAuth";
 import { Link, useNavigate } from "react-router";
 import toast from "react-hot-toast";
@@ -19,18 +19,18 @@ const Navbar = () => {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { user, logOut } = useAuth();
-  const isLoggedIn = !!user; 
+  const isLoggedIn = !!user;
 
-const handleLogout = async () => {
-  try {
-    await logOut(); 
-    toast("Successfully logged out!");
-    navigate("/login");
-  } catch (error) {
-    console.error("Logout error:", error);
-    toast("Logout failed. Please try again.");
-  }
-};
+  const handleLogout = async () => {
+    try {
+      await logOut();
+      toast("Successfully logged out!");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast("Logout failed. Please try again.");
+    }
+  };
 
   // Helper to get fallback user props
   const getUserDisplay = () => user?.displayName || "User";
@@ -53,12 +53,12 @@ const handleLogout = async () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center gap-6">
-            <a
-              href="/"
+            <Link
+              to="/"
               className="text-stone-700 hover:text-amber-600 font-medium transition-colors"
             >
               Home
-            </a>
+            </Link>
             {isLoggedIn && (
               <>
                 <Link
@@ -67,12 +67,12 @@ const handleLogout = async () => {
                 >
                   All Tickets
                 </Link>
-                <a
-                  href="/dashboard"
+                <Link
+                  to="/dashboard"
                   className="text-stone-700 hover:text-amber-600 font-medium transition-colors"
                 >
                   Dashboard
-                </a>
+                </Link>
               </>
             )}
           </div>
@@ -116,24 +116,13 @@ const handleLogout = async () => {
                       <p className="text-xs text-stone-500">{getUserEmail()}</p>
                     </div>
 
-                    <Link
-                      to="user/profile"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
-                    >
-                      <User className="w-4 h-4 text-stone-600" />
-                      <span className="text-sm text-stone-700">My Profile</span>
-                    </Link>
-
-                    <Link
-                      to="/dashboard"
-                      className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
-                    >
+                    <Link className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors">
                       <LayoutDashboard className="w-4 h-4 text-stone-600" />
                       <span className="text-sm text-stone-700">Dashboard</span>
                     </Link>
 
                     <Link
-                      to="user/bookings"
+                      to="/dashboard/user/bookings"
                       className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
                     >
                       <Ticket className="w-4 h-4 text-stone-600" />
@@ -200,17 +189,19 @@ const handleLogout = async () => {
               {isLoggedIn ? (
                 <>
                   <Link
-                    href="/all-tickets"
+                    to="/all-tickets"
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className="px-4 py-2 text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
                   >
                     All Tickets
                   </Link>
-                  <a
-                    href="/dashboard"
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className="px-4 py-2 text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
                   >
                     Dashboard
-                  </a>
+                  </Link>
 
                   {/* User Info Mobile */}
                   <div className="px-4 py-3 mt-2 border-t border-stone-200">
@@ -234,7 +225,10 @@ const handleLogout = async () => {
                     </div>
 
                     <button
-                      onClick={handleLogout}
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleLogout();
+                      }}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg font-medium hover:bg-red-100 transition-colors"
                     >
                       <LogOutIcon className="w-4 h-4" />
@@ -246,12 +240,14 @@ const handleLogout = async () => {
                 <div className="px-4 py-2 flex flex-col gap-2">
                   <Link
                     to="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className="w-full px-4 py-2 text-center border-2 border-amber-500 text-amber-600 rounded-lg font-medium hover:bg-amber-50 transition-colors"
                   >
                     Login
                   </Link>
                   <Link
                     to="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className="w-full px-4 py-2 text-center bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
                   >
                     Register

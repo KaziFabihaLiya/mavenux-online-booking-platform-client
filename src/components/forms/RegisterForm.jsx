@@ -26,35 +26,84 @@ const RegisterForm = () => {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
   } = useForm();
 
   console.log(errors);
   const onSubmit = async (data) => {
     const { name, image, email, password } = data;
-    const imageFile = image[0];
-    // const formData = new FormData()
-    // formData.append('image', imageFile)
+
+    // Clear previous errors
+    setError("");
+
+    // Server-side password validation
+    try {
+      // Use relative /api path so Vite dev server proxy routes to the backend
+      const res = await fetch("/api/validate-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(json.message || "Invalid password");
+        return;
+      }
+    } catch (validationErr) {
+      console.error("Password validation request failed:", validationErr);
+      toast.error(
+        "Could not validate password right now. Please try again later."
+      );
+      return;
+    }
+
+    const imageFile = image && image[0];
 
     try {
-      // const { data } = await axios.post(
-      //   `https://api.imgbb.com/1/upload?key=${
-      //     import.meta.env.VITE_IMGBB_API_KEY
-      //   }`,
-      //   formData
-      // )
-      const imageURL = await imageUpload(imageFile);
-      // const cloudinaryImageUrl = await imageUploadCloudinary(imageFile)
-      // console.log('Cloudinary Response ----->', cloudinaryImageUrl)
+      // Attempt image upload but don't block registration on network failure
+      let imageURL = null;
+      if (imageFile) {
+        try {
+          imageURL = await imageUpload(imageFile);
+        } catch (imgErr) {
+          console.error("Image upload failed:", imgErr);
+          toast.error(
+            "Image upload failed — continuing without profile photo."
+          );
+          imageURL = null; // continue without image
+        }
+      }
 
-      //1. User Registration
+      // 1. User Registration
       const result = await createUser(email, password);
 
-      await saveOrUpdateUser({ name, email, image: imageURL });
+      // 2. Save user in backend (best-effort) — include Firebase uid when available
+      try {
+        await saveOrUpdateUser({
+          name,
+          email,
+          image: imageURL,
+          uid: result?.user?.uid,
+        });
+      } catch (dbErr) {
+        console.error("Failed to save user to backend:", dbErr);
+        // Friendly message for fetch/network errors
+        if (dbErr.message && dbErr.message.includes("Failed to fetch")) {
+          toast.error(
+            "Unable to reach backend server. Please check your network or start the API server."
+          );
+        } else {
+          toast.error(dbErr.message || "Failed to sync user to server.");
+        }
+      }
 
-      // 2. Generate image url from selected file
-
-      //3. Save username & profile photo
-      await updateUserProfile(name, imageURL);
+      // 3. Save username & profile photo in Firebase
+      try {
+        await updateUserProfile(name, imageURL);
+      } catch (profileErr) {
+        console.warn("Failed to update profile in Firebase:", profileErr);
+      }
 
       navigate(from, { replace: true });
       toast.success("Signup Successful");
@@ -62,7 +111,17 @@ const RegisterForm = () => {
       console.log(result);
     } catch (err) {
       console.log(err);
-      toast.error(err?.message);
+      // Map common Firebase auth / network errors to friendlier messages
+      const msg = (err && err.message) || "Failed to create account";
+      if (msg.includes("Failed to fetch")) {
+        toast.error(
+          "Network error: could not reach authentication server. Try again later."
+        );
+      } else if (msg.includes("auth/email-already-in-use")) {
+        setError("This email is already registered. Try signing in.");
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
@@ -244,9 +303,14 @@ const RegisterForm = () => {
                     placeholder="*******"
                     {...register("password", {
                       required: "Password is required",
-                      minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters",
+                      validate: (value) => {
+                        if (!value || value.length < 6)
+                          return "Password must be at least 6 characters";
+                        if (!/[A-Z]/.test(value))
+                          return "Password must contain at least one uppercase letter";
+                        if (!/[a-z]/.test(value))
+                          return "Password must contain at least one lowercase letter";
+                        return true;
                       },
                     })}
                     className="w-full pl-11 pr-11 py-3 border border-stone-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
@@ -256,6 +320,32 @@ const RegisterForm = () => {
                       {errors.password.message}
                     </p>
                   )}
+                  {/* Password requirements */}
+                  <div className="mt-3 text-xs text-stone-500">
+                    {/** use watch to show dynamic checks */}
+                    {(() => {
+                      const pwd = watch("password") || "";
+                      const checks = [
+                        { ok: pwd.length >= 6, text: "At least 6 characters" },
+                        { ok: /[A-Z]/.test(pwd), text: "One uppercase letter" },
+                        { ok: /[a-z]/.test(pwd), text: "One lowercase letter" },
+                      ];
+                      return (
+                        <ul className="space-y-1">
+                          {checks.map((c, i) => (
+                            <li
+                              key={i}
+                              className={
+                                c.ok ? "text-emerald-600" : "text-stone-400"
+                              }
+                            >
+                              {c.ok ? "✔" : "○"} {c.text}
+                            </li>
+                          ))}
+                        </ul>
+                      );
+                    })()}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}

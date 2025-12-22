@@ -26,7 +26,11 @@ export default function ManageUsers() {
     queryKey: ["admin", "users"],
     queryFn: async () => {
       const { data } = await axiosSecure.get("/api/admin/users");
-      return data.data;
+      // Normalize _id to string in case it's returned as { $oid: '...' }
+      return data.data.map((u) => ({
+        ...u,
+        _id: u._id?.$oid || u._id?.toString?.() || u._id,
+      }));
     },
   });
 

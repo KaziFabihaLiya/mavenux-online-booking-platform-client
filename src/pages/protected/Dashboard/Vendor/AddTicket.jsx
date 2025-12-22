@@ -15,18 +15,20 @@ import {
   X,
 } from "lucide-react";
 import LoadingSpinner from "../../../../components/common/LoadingSpinner";
-
+import useAuth from "../../../../hooks/useAuth";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router";
 
 export default function AddTicket() {
+  const navigate = useNavigate(); // Add this
   const [loading, setLoading] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  // Replace with actual auth user
-  const vendorId = "USER_ID_FROM_AUTH"; // From Firebase or auth context
-  const vendorName = "John Doe";
-  const vendorEmail = "vendor@example.com";
+  const { user } = useAuth();
+  const axiosSecure = useAxiosSecure();
 
   const [formData, setFormData] = useState({
     title: "",
@@ -39,9 +41,8 @@ export default function AddTicket() {
     departureTime: "",
     perks: [],
     image: "",
-    vendorId: vendorId,
-    vendorName: vendorName,
-    vendorEmail: vendorEmail,
+    vendorName: user?.displayName || "",
+    vendorEmail: user?.email || "",
   });
 
   const transportTypes = [
@@ -101,25 +102,34 @@ export default function AddTicket() {
       const imageFormData = new FormData();
       imageFormData.append("image", file);
 
+      // ✅ Use the API key from .env
       const response = await fetch(
-        `https://api.imgbb.com/1/upload?key=YOUR_IMGBB_API_KEY`,
+        `https://api.imgbb.com/1/upload?key=${
+          import.meta.env.VITE_IMGBB_API_KEY
+        }`,
         { method: "POST", body: imageFormData }
       );
 
       const data = await response.json();
+
       if (data.success) {
         setFormData((prev) => ({ ...prev, image: data.data.display_url }));
         setImagePreview(data.data.display_url);
         setMessage({ type: "success", text: "Image uploaded!" });
         setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+      } else {
+        throw new Error(data.error?.message || "Upload failed");
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to upload image" });
+      console.error("ImgBB upload error:", error);
+      setMessage({
+        type: "error",
+        text: error.message || "Failed to upload image",
+      });
     } finally {
       setImageUploading(false);
     }
   };
-
   const handlePerkToggle = (perk) => {
     setFormData((prev) => ({
       ...prev,
@@ -144,19 +154,34 @@ export default function AddTicket() {
 
     try {
       setLoading(true);
+      const { data } = await axiosSecure.post("/api/tickets", formData);
 
-      const response = await fetch("http://localhost:5000/api/tickets", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      if (data?.success) {
+        toast.success("Ticket added! Waiting for admin approval.");
 
-      if (response.ok) {
-        setMessage({
-          type: "success",
-          text: "Ticket added! Waiting for admin approval.",
-        });
+        // Use navigation state to pass the created ticket (ensures the list page sees it on mount)
+        try {
+          const newTicket = data.data;
+          console.log("/api/tickets - created:", newTicket);
 
+          // Navigate first and provide the ticket via location.state
+          navigate("/dashboard/vendor/my-tickets", { state: { newTicket } });
+
+          // Dispatch a delayed event as a compatibility fallback for listeners
+          setTimeout(() => {
+            try {
+              window.dispatchEvent(
+                new CustomEvent("ticket:added", { detail: newTicket })
+              );
+            } catch (err) {
+              console.warn("ticket added delayed event dispatch failed", err);
+            }
+          }, 100);
+        } catch (err) {
+          console.warn("ticket added handling failed", err);
+        }
+
+        // Reset form
         setFormData({
           title: "",
           from: "",
@@ -168,16 +193,18 @@ export default function AddTicket() {
           departureTime: "",
           perks: [],
           image: "",
-          vendorId,
-          vendorName,
-          vendorEmail,
+          vendorName: user?.displayName || "",
+          vendorEmail: user?.email || "",
         });
         setImagePreview(null);
-      } else {
-        throw new Error("Failed");
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Failed to add ticket" });
+      console.error("Error adding ticket:", error);
+      toast.error(error.response?.data?.message || "Failed to add ticket");
+      setMessage({
+        type: "error",
+        text: error.response?.data?.message || "Failed to add ticket",
+      });
     } finally {
       setLoading(false);
     }
@@ -237,7 +264,7 @@ export default function AddTicket() {
 
       {/* Main Form Card */}
       <div className="rounded-2xl bg-white shadow-xl border border-stone-200">
-        <div className="space-y-8 p-8">
+        <form onSubmit={handleSubmit} className="space-y-8 p-8">
           {/* Ticket Title */}
           <div className="group">
             <label className="mb-2 flex items-center gap-2 text-sm font-bold text-stone-700">
@@ -515,7 +542,7 @@ export default function AddTicket() {
                 </label>
                 <input
                   type="text"
-                  value={vendorName}
+                  value={formData.vendorName}
                   readOnly
                   className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2 text-stone-600"
                 />
@@ -526,7 +553,7 @@ export default function AddTicket() {
                 </label>
                 <input
                   type="email"
-                  value={vendorEmail}
+                  value={formData.vendorEmail}
                   readOnly
                   className="w-full rounded-lg border border-stone-300 bg-white px-4 py-2 text-stone-600"
                 />
@@ -536,7 +563,7 @@ export default function AddTicket() {
 
           {/* Submit Button */}
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading || imageUploading}
             className="group relative w-full overflow-hidden rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 py-4 text-lg font-bold text-white shadow-xl transition-all hover:shadow-2xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -550,18 +577,8 @@ export default function AddTicket() {
           <p className="text-center text-sm text-stone-500">
             ✨ Your ticket will be reviewed by our admin team before going live
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );
 }
-
-/*
-BACKEND INTEGRATION:
-POST http://localhost:5000/api/tickets
-Body: {
-  title, from, to, transportType, price, ticketQuantity,
-  departureDate, departureTime, perks[], image,
-  vendorId, vendorName, vendorEmail
-}
-*/

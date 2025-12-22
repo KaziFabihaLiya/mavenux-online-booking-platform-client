@@ -21,32 +21,54 @@ const LoginForm = () => {
   const { user, signIn, signInWithGoogle, loading, setLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const from = location.state || "/";
+  // support redirect state set by PrivateRoutes: { from: location }
+  const from = location.state?.from?.pathname || location.state || "/";
+
+  const [loginError, setLoginError] = useState("");
 
   if (loading) return <LoadingSpinner />;
   if (user) return <Navigate to={from} replace={true} />;
+
   // form submit handler
   const handleSubmit = async (event) => {
     event.preventDefault();
+    setLoginError("");
     const form = event.target;
     const email = form.email.value;
     const password = form.password.value;
 
+    setLoading(true);
     try {
-      //User Login
+      // User Login
       const { user } = await signIn(email, password);
 
       await saveOrUpdateUser({
         name: user?.displayName,
         email: user?.email,
         image: user?.photoURL,
+        uid: user?.uid,
       });
 
       navigate(from, { replace: true });
       toast.success("Login Successful");
     } catch (err) {
       console.log(err);
-      toast.error(err?.message);
+      const code = err?.code || err?.message || "";
+      if (code.includes("auth/wrong-password")) {
+        setLoginError("Incorrect password. Please try again.");
+        toast.error("Incorrect password.");
+      } else if (code.includes("auth/user-not-found")) {
+        setLoginError("No account found with this email.");
+        toast.error("No account found with this email.");
+      } else if (code.includes("auth/invalid-email")) {
+        setLoginError("Invalid email address.");
+        toast.error("Invalid email address.");
+      } else {
+        setLoginError(err?.message || "Login failed. Try again.");
+        toast.error(err?.message || "Login failed. Try again.");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,6 +147,13 @@ const LoginForm = () => {
             action=""
             className="space-y-6 ng-untouched ng-pristine ng-valid"
           >
+            {/* Inline login error */}
+            {loginError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{loginError}</p>
+              </div>
+            )}
             {/* Login Fields */}
             <div className="space-y-5">
               {/* Email Field */}

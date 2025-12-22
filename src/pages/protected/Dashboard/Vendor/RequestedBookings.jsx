@@ -1,4 +1,3 @@
-//Table accept/reject
 import { useState, useEffect } from "react";
 import {
   CheckCircle,
@@ -10,29 +9,47 @@ import {
   TrendingUp,
   Clock,
 } from "lucide-react";
+import useAxiosSecure from "../../../../hooks/useAxiosSecure";
+import useAuth from "../../../../hooks/useAuth";
+import toast from "react-hot-toast";
 
 export default function RequestedBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Replace with actual vendorId
-  const vendorId = "USER_ID_FROM_AUTH";
+  const axiosSecure = useAxiosSecure();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    fetchBookings();
-  }, []);
+    if (!authLoading && user) {
+      console.log("📦 Fetching bookings for user:", user.email);
+      fetchBookings();
+    }
+  }, [user, authLoading]);
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `http://localhost:5000/api/bookings/vendor/${vendorId}`
-      );
-      const data = await response.json();
-      setBookings(data.data);
+      setError(null);
+
+      console.log("📡 Calling GET /api/bookings/vendor/me");
+      const { data } = await axiosSecure.get("/api/bookings/vendor/me");
+
+      console.log("✅ Received bookings:", data);
+      setBookings(data?.data || []);
+
+      if (data?.message) {
+        toast(data.message, { icon: "⚠️", duration: 5000 });
+      }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Error fetching bookings:", error);
+      const errorMsg =
+        error.response?.data?.message || "Failed to load bookings";
+      setError(errorMsg);
+      toast.error(errorMsg);
+      setBookings([]);
     } finally {
       setLoading(false);
     }
@@ -41,21 +58,21 @@ export default function RequestedBookings() {
   const handleStatusChange = async (bookingId, status) => {
     try {
       setProcessingId(bookingId);
+      console.log(`📝 Updating booking ${bookingId} to ${status}`);
 
-      const response = await fetch(
-        `http://localhost:5000/api/bookings/${bookingId}/status`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status }),
-        }
-      );
+      const { data } = await axiosSecure.put(`/api/bookings/${bookingId}/status`, {
+        status,
+      });
 
-      if (response.ok) {
+      if (data?.success) {
+        toast.success(`Booking ${status} successfully!`);
         fetchBookings();
       }
     } catch (error) {
-      console.error("Error:", error);
+      console.error("❌ Status update error:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to update booking status"
+      );
     } finally {
       setProcessingId(null);
     }
@@ -87,12 +104,57 @@ export default function RequestedBookings() {
       .reduce((sum, b) => sum + b.totalPrice, 0),
   };
 
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-stone-200 border-t-amber-500"></div>
+          <p className="font-semibold text-stone-600">Authenticating...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-stone-200 border-t-amber-500"></div>
           <p className="font-semibold text-stone-600">Loading bookings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="px-4">
+        <div className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 p-8 shadow-2xl">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white bg-opacity-20 backdrop-blur-sm">
+              <Clock className="h-8 w-8 text-white" />
+            </div>
+            <div>
+              <h2 className="mb-1 text-3xl font-black text-white">
+                Booking Requests
+              </h2>
+              <p className="text-indigo-100">Manage customer bookings</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-red-50 border-2 border-red-200 p-8 text-center">
+          <XCircle className="mx-auto mb-4 h-16 w-16 text-red-500" />
+          <h3 className="mb-2 text-2xl font-bold text-red-800">
+            Error Loading Bookings
+          </h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={fetchBookings}
+            className="px-6 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -107,7 +169,9 @@ export default function RequestedBookings() {
             <Clock className="h-8 w-8 text-white" />
           </div>
           <div>
-            <h2 className="mb-1 text-3xl font-black text-white">Booking Requests</h2>
+            <h2 className="mb-1 text-3xl font-black text-white">
+              Booking Requests
+            </h2>
             <p className="text-indigo-100">Manage customer bookings</p>
           </div>
         </div>
@@ -223,7 +287,9 @@ export default function RequestedBookings() {
                     </td>
 
                     {/* Status */}
-                    <td className="px-6 py-4">{getStatusBadge(booking.status)}</td>
+                    <td className="px-6 py-4">
+                      {getStatusBadge(booking.status)}
+                    </td>
 
                     {/* Actions */}
                     <td className="px-6 py-4">
@@ -283,10 +349,3 @@ export default function RequestedBookings() {
     </div>
   );
 }
-
-/*
-BACKEND INTEGRATION:
-GET http://localhost:5000/api/bookings/vendor/:vendorId
-PUT http://localhost:5000/api/bookings/:id/status
-Body: { status: "accepted" | "rejected" }
-*/

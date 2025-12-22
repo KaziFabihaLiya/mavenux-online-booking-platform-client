@@ -100,7 +100,7 @@ export default function Profile() {
       });
 
       // Also update in MongoDB
-      await axiosSecure.post("/user", {
+      await axiosSecure.post("/api/user", {
         email: user.email,
         displayName: formData.displayName,
         photoURL: formData.photoURL,

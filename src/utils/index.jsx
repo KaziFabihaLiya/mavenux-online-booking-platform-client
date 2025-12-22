@@ -12,7 +12,8 @@ export const saveOrUpdateUser = async ({ name, email, image, uid }) => {
       uid: uid,
     };
 
-    const response = await fetch("http://localhost:5000/user", {
+    // Use the Vite proxy /api path so requests go to the backend server
+    const response = await fetch("/api/user", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

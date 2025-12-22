@@ -117,12 +117,6 @@ const DashboardLayout = () => {
       icon: Settings,
       path: "/dashboard/admin/advertise",
     },
-    {
-      id: "vendor-requests",
-      label: "Vendor Requests",
-      icon: UserPlus,
-      path: "/dashboard/admin/vendor-requests",
-    },
   ];
 
   // ✅ FIX: Dynamically get menu items based on role

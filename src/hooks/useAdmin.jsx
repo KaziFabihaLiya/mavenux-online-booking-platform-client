@@ -1,4 +1,3 @@
-
 import toast from "react-hot-toast";
 import { axiosInstance } from "./useAxiosSecure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -72,7 +71,10 @@ export const useAdminUsers = () => {
     queryKey: ["admin", "users"],
     queryFn: async () => {
       const { data } = await axiosInstance.get("/api/admin/users");
-      return data.data;
+      return data.data.map((u) => ({
+        ...u,
+        _id: u._id?.$oid || u._id?.toString?.() || u._id,
+      }));
     },
   });
 };

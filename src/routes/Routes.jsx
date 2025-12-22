@@ -1,4 +1,3 @@
-
 import { createBrowserRouter } from "react-router";
 import MainLayout from "../layouts/MainLayout";
 import Home from "../pages/public/Home";
@@ -30,7 +29,7 @@ import RegisterForm from "../components/forms/RegisterForm";
 import ForgetPassword from "../components/common/ForgotPassword";
 import AdminRoute from "./AdminRoute";
 import VendorRoute from "./VendorRoute";
-import VendorRequest from "../pages/protected/Dashboard/Admin/VendorRequest";
+
 import BecomeVendor from "../pages/protected/Dashboard/User/BecomeVendor";
 
 const router = createBrowserRouter([
@@ -196,16 +195,7 @@ const router = createBrowserRouter([
           </PrivateRoutes>
         ),
       },
-      {
-        path: "admin/vendor-requests",
-        element: (
-          <PrivateRoutes>
-            <AdminRoute>
-              <VendorRequest />
-            </AdminRoute>
-          </PrivateRoutes>
-        ),
-      },
+
       {
         path: "admin/advertise",
         element: (
