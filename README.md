@@ -40,8 +40,8 @@ The platform emphasizes secure authentication (Firebase), role-based access cont
 - **Client**: [https://mavenux-client.vercel.app](https://mavenux-client.vercel.app) (Deployed on Vercel; fallback: http://localhost:5173)
 - **Server/API**: [https://mavenux-server.vercel.app](https://mavenux-server.vercel.app) (Deployed on Vercel; fallback: http://localhost:5000)
 - **Demo Credentials**:
-  - Admin: `admin@ticketbari.com` / `Admin@123`
-  - Vendor: `vendor@ticketbari.com` / `Vendor@123`
+  - Admin: `admin@Mavenus.com` / `Admin@123`
+  - Vendor: `vendor@Mavenus.com` / `Vendor@123`
   - User: Register via app.
 
 ## Tech Stack

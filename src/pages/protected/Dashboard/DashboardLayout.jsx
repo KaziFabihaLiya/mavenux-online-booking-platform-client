@@ -1,4 +1,4 @@
-// src/pages/protected/Dashboard/DashboardLayout.jsx - FIXED
+
 import { useState } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router";
 import {
@@ -15,9 +15,10 @@ import {
   User,
   Users,
   Store,
-  UserPlus,
   X,
   Loader2,
+  Home,
+  ArrowLeft,
 } from "lucide-react";
 import useAuth from "../../../hooks/useAuth";
 import useRole from "../../../hooks/useRole";
@@ -28,9 +29,6 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [role, isRoleLoading] = useRole();
-
-  console.log("🔍 Dashboard - Current Role:", role); // Debug
-  console.log("🔍 Dashboard - Role Loading:", isRoleLoading); // Debug
 
   const userMenuItems = [
     {
@@ -119,9 +117,8 @@ const DashboardLayout = () => {
     },
   ];
 
-  // ✅ FIX: Dynamically get menu items based on role
   const getMenuItems = () => {
-    if (!role) return userMenuItems; // Default to user if role not loaded yet
+    if (!role) return userMenuItems;
 
     switch (role) {
       case "vendor":
@@ -156,19 +153,17 @@ const DashboardLayout = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  // ✅ FIX: Show loading state while role is being fetched
   if (!user || isRoleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-stone-50">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 border-4 text-amber-500 animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-4" />
           <p className="text-stone-600">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // ✅ FIX: Get role badge color
   const getRoleBadgeColor = () => {
     switch (role) {
       case "admin":
@@ -204,6 +199,15 @@ const DashboardLayout = () => {
         </div>
 
         <nav className="p-4">
+          {/* ✅ NEW: Back to Home Button */}
+          <button
+            onClick={() => navigate("/")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-4 text-stone-700 hover:bg-amber-50 hover:text-amber-600 transition-all border-b border-stone-200"
+          >
+            <Home className="w-5 h-5 flex-shrink-0" />
+            {isSidebarOpen && <span className="font-medium">Back to Home</span>}
+          </button>
+
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -238,16 +242,27 @@ const DashboardLayout = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
         <header className="bg-white border-b border-stone-200 px-6 py-4 flex items-center justify-between">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
-          >
-            {isSidebarOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 hover:bg-stone-100 rounded-lg transition-colors"
+            >
+              {isSidebarOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+
+            {/* ✅ NEW: Mobile Back Button */}
+            <button
+              onClick={() => navigate("/")}
+              className="md:hidden p-2 hover:bg-amber-50 rounded-lg transition-colors text-amber-600"
+              title="Back to Home"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          </div>
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
@@ -275,7 +290,7 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        {/* Content Area - Render Nested Routes */}
+        {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>

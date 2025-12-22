@@ -183,7 +183,7 @@ const RegisterForm = () => {
             <h1 className="text-3xl font-bold text-stone-800 mb-2">
               Create Account
             </h1>
-            <p className="text-stone-600">Join TicketBari today</p>
+            <p className="text-stone-600">Join Mavenus today</p>
           </div>
 
           {/* Error Alert */}

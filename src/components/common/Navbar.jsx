@@ -47,7 +47,7 @@ const Navbar = () => {
               <Bus className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
-              TicketBari
+              Mavenus
             </span>
           </div>
 
@@ -116,7 +116,10 @@ const Navbar = () => {
                       <p className="text-xs text-stone-500">{getUserEmail()}</p>
                     </div>
 
-                    <Link className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors">
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center gap-3 px-4 py-2 hover:bg-stone-50 transition-colors"
+                    >
                       <LayoutDashboard className="w-4 h-4 text-stone-600" />
                       <span className="text-sm text-stone-700">Dashboard</span>
                     </Link>
