@@ -39,7 +39,7 @@ const RegisterForm = () => {
     // Server-side password validation
     try {
       // Use relative /api path so Vite dev server proxy routes to the backend
-      const res = await fetch("/api/validate-password", {
+      const res = await fetch("/api/user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password }),
@@ -349,7 +349,7 @@ const RegisterForm = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-900 transition-colors"
                   >
                     {showPassword ? (
                       <EyeOff className="w-5 h-5" />
