@@ -36,28 +36,6 @@ const RegisterForm = () => {
     // Clear previous errors
     setError("");
 
-    // Server-side password validation
-    try {
-      // Use relative /api path so Vite dev server proxy routes to the backend
-      const res = await fetch("/api/user", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(json.message || "Invalid password");
-        return;
-      }
-    } catch (validationErr) {
-      console.error("Password validation request failed:", validationErr);
-      toast.error(
-        "Could not validate password right now. Please try again later."
-      );
-      return;
-    }
-
     const imageFile = image && image[0];
 
     try {
