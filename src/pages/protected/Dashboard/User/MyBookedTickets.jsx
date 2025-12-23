@@ -272,7 +272,7 @@ export default function MyBookedTickets() {
                 <div className="flex items-center gap-2 text-stone-600">
                   <MapPin className="w-4 h-4 text-amber-600" />
                   <span className="text-sm font-medium">
-                    {booking.from} → {booking.to}
+                    {booking.from || "N/A"} → {booking.to || "N/A"}
                   </span>
                 </div>
 
@@ -291,8 +291,10 @@ export default function MyBookedTickets() {
                 <div className="flex items-center gap-2 text-stone-600">
                   <Ticket className="w-4 h-4 text-amber-600" />
                   <span className="text-sm">
-                    {booking.bookingQuantity}{" "}
-                    {booking.bookingQuantity === 1 ? "ticket" : "tickets"}
+                    {booking.bookingQuantity || 1}{" "}
+                    {Number(booking.bookingQuantity || 1) === 1
+                      ? "ticket"
+                      : "tickets"}
                   </span>
                 </div>
               </div>
@@ -328,7 +330,15 @@ export default function MyBookedTickets() {
                 <div>
                   <p className="text-xs text-stone-500">Total Amount</p>
                   <p className="text-2xl font-bold text-amber-600">
-                    ৳{booking.totalPrice.toLocaleString()}
+                    ৳
+                    {booking.totalPrice != null
+                      ? Number(booking.totalPrice).toLocaleString("en-BD")
+                      : booking.price != null && booking.bookingQuantity != null
+                      ? (
+                          Number(booking.price) *
+                          Number(booking.bookingQuantity)
+                        ).toLocaleString("en-BD")
+                      : "0"}
                   </p>
                 </div>
               </div>
