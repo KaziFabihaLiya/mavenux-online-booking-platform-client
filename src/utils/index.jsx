@@ -13,13 +13,16 @@ export const saveOrUpdateUser = async ({ name, email, image, uid }) => {
     };
 
     // Use the Vite proxy /api path so requests go to the backend server
-    const response = await fetch("/api/user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
+    const response = await fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/api/user`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userData),
+      }
+    );
 
     const data = await response.json();
 
